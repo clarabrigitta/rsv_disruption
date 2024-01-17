@@ -1,5 +1,3 @@
-setwd("~/Desktop/PhD")
-
 # load libraries
 library(readxl)
 library(ggplot2)
@@ -12,7 +10,7 @@ library(viridisLite)
 library(plotly)
 
 # load data and calculate over 2yrs, under 2yrs, pregnancy trimester counts and proportions
-data <- read_excel("births_pregnancies.xlsx", sheet = "All") %>%
+data <- read_excel("./data/births_pregnancies.xlsx", sheet = "All") %>%
   mutate(year_month = paste(year, month, sep = "_"),
          date = as.Date(as.yearmon(`year_month`, "%Y_%b"))) %>%
   select(year, month, date, births) %>% 
@@ -69,223 +67,72 @@ data %>%
 # sir_out_long <- melt(as.data.frame(sir_out),"time")
 
 # infection model in women, calculate infection status in 1,000,000 women based on monthly infection rate
-women <- as.data.frame(matrix(NA, 192, 28))
-colnames(women) <- c("time", "month", "susceptible", "rate", str_c(rep("I", 24), 1:24))
+n_interest <- 24 # number of months of interest for history of infection
+rep <- 20 # number of years
 
-women <- women %>% mutate(month = rep(month.abb, 16),
-                          time = 1:192,
+women <- as.data.frame(matrix(NA, 12*rep, 5+n_interest))
+colnames(women) <- c("time", "month", "susceptible_naive", "susceptible_reinf", "rate", str_c(rep("I", n_interest), 1:n_interest))
+
+women <- women %>% mutate(month = rep(month.abb, rep),
+                          time = 1:nrow(women),
                           # rate = 0.05,
                           rate = ifelse(month %in% c(month.abb[11:12], month.abb[1:3]), 0.10, 0.05))
 
-women[1, "susceptible"] <- 1000000
-women[1, "I1"] <- women[1, "susceptible"] * women[1, "rate"]
+women[1, "susceptible_naive"] <- 1000000
 
-for (row in 1:23){
-  women[row + 1, "susceptible"] <- women[row, "susceptible"] - women[row, "I1"]
-  women[row + 1, "I1"] <- women[row + 1, "susceptible"] * women[row + 1, "rate"]
-  women[row + 1, "I2"] <- women[row, "I1"]
-  if(!is.na(women[row, "I2"])){
-    women[row + 1, "I3"] <- women[row, "I2"]
-  } else {women[row + 1, "I3"] <- NA}  
-  
-  if(!is.na(women[row, "I3"])){
-    women[row + 1, "I4"] <- women[row, "I3"]
-  } else {women[row + 1, "I4"] <- NA}
-  
-  if(!is.na(women[row, "I4"])){
-    women[row + 1, "I5"] <- women[row, "I4"]
-  } else {women[row + 1, "I5"] <- NA}
-  
-  if(!is.na(women[row, "I5"])){
-    women[row + 1, "I6"] <- women[row, "I5"]
-  } else {women[row + 1, "I6"] <- NA}
-  
-  if(!is.na(women[row, "I6"])){
-    women[row + 1, "I7"] <- women[row, "I6"]
-  } else {women[row + 1, "I7"] <- NA}
-  
-  if(!is.na(women[row, "I7"])){
-    women[row + 1, "I8"] <- women[row, "I7"]
-  } else {women[row + 1, "I8"] <- NA}
-  
-  if(!is.na(women[row, "I8"])){
-    women[row + 1, "I9"] <- women[row, "I8"]
-  } else {women[row + 1, "I9"] <- NA}
-  
-  if(!is.na(women[row, "I9"])){
-    women[row + 1, "I10"] <- women[row, "I9"]
-  } else {women[row + 1, "I10"] <- NA}
-  
-  if(!is.na(women[row, "I10"])){
-    women[row + 1, "I11"] <- women[row, "I10"]
-  } else {women[row + 1, "I11"] <- NA}
-  
-  if(!is.na(women[row, "I11"])){
-    women[row + 1, "I12"] <- women[row, "I11"]
-  } else {women[row + 1, "I12"] <- NA}
-  
-  if(!is.na(women[row, "I12"])){
-    women[row + 1, "I13"] <- women[row, "I12"]
-  } else {women[row + 1, "I13"] <- NA}
-  
-  if(!is.na(women[row, "I13"])){
-    women[row + 1, "I14"] <- women[row, "I13"]
-  } else {women[row + 1, "I14"] <- NA}
-  
-  if(!is.na(women[row, "I14"])){
-    women[row + 1, "I15"] <- women[row, "I14"]
-  } else {women[row + 1, "I15"] <- NA}
-  
-  if(!is.na(women[row, "I15"])){
-    women[row + 1, "I16"] <- women[row, "I15"]
-  } else {women[row + 1, "I16"] <- NA}
-  
-  if(!is.na(women[row, "I16"])){
-    women[row + 1, "I17"] <- women[row, "I16"]
-  } else {women[row + 1, "I17"] <- NA}
-  
-  if(!is.na(women[row, "I17"])){
-    women[row + 1, "I18"] <- women[row, "I17"]
-  } else {women[row + 1, "I18"] <- NA}
-  
-  if(!is.na(women[row, "I18"])){
-    women[row + 1, "I19"] <- women[row, "I18"]
-  } else {women[row + 1, "I19"] <- NA}
-  
-  if(!is.na(women[row, "I19"])){
-    women[row + 1, "I20"] <- women[row, "I19"]
-  } else {women[row + 1, "I20"] <- NA}
-  
-  if(!is.na(women[row, "I20"])){
-    women[row + 1, "I21"] <- women[row, "I20"]
-  } else {women[row + 1, "I21"] <- NA}
-  
-  if(!is.na(women[row, "I21"])){
-    women[row + 1, "I22"] <- women[row, "I21"]
-  } else {women[row + 1, "I22"] <- NA}
-  
-  if(!is.na(women[row, "I22"])){
-    women[row + 1, "I23"] <- women[row, "I22"]
-  } else {women[row + 1, "I23"] <- NA}
-  
-  if(!is.na(women[row, "I23"])){
-    women[row + 1, "I24"] <- women[row, "I23"]
-  } else {women[row + 1, "I24"] <- NA}
-  
+for (row in 1:n_interest){
+  women[row + 1, "I1"] <- women[row, "susceptible_naive"] * women[row, "rate"]
+  women[row + 1, "susceptible_naive"] <- women[row, "susceptible_naive"] - women[row + 1, "I1"]
+
+  for (month in 2:n_interest){
+    if(!is.na(women[row, paste0("I", month-1)])){
+      women[row + 1, paste0("I", month)] <- women[row, paste0("I", month-1)]
+    } else {women[row + 1, paste0("I", month)] <- NA}
+  }
 }
 
-for (row in 24:nrow(women)) {
-  women[row + 1, "susceptible"] <- women[row, "susceptible"] - women[row, "I1"] + women[row, "I24"]
-  women[row + 1, "I1"] <- women[row + 1, "susceptible"] * women[row + 1, "rate"]
-  women[row + 1, "I2"] <- women[row, "I1"]
-  if(!is.na(women[row, "I2"])){
-    women[row + 1, "I3"] <- women[row, "I2"]
-  } else {women[row + 1, "I3"] <- NA}  
-  
-  if(!is.na(women[row, "I3"])){
-    women[row + 1, "I4"] <- women[row, "I3"]
-  } else {women[row + 1, "I4"] <- NA}
-  
-  if(!is.na(women[row, "I4"])){
-    women[row + 1, "I5"] <- women[row, "I4"]
-  } else {women[row + 1, "I5"] <- NA}
-  
-  if(!is.na(women[row, "I5"])){
-    women[row + 1, "I6"] <- women[row, "I5"]
-  } else {women[row + 1, "I6"] <- NA}
-  
-  if(!is.na(women[row, "I6"])){
-    women[row + 1, "I7"] <- women[row, "I6"]
-  } else {women[row + 1, "I7"] <- NA}
-  
-  if(!is.na(women[row, "I7"])){
-    women[row + 1, "I8"] <- women[row, "I7"]
-  } else {women[row + 1, "I8"] <- NA}
-  
-  if(!is.na(women[row, "I8"])){
-    women[row + 1, "I9"] <- women[row, "I8"]
-  } else {women[row + 1, "I9"] <- NA}
-  
-  if(!is.na(women[row, "I9"])){
-    women[row + 1, "I10"] <- women[row, "I9"]
-  } else {women[row + 1, "I10"] <- NA}
-  
-  if(!is.na(women[row, "I10"])){
-    women[row + 1, "I11"] <- women[row, "I10"]
-  } else {women[row + 1, "I11"] <- NA}
-  
-  if(!is.na(women[row, "I11"])){
-    women[row + 1, "I12"] <- women[row, "I11"]
-  } else {women[row + 1, "I12"] <- NA}
-  
-  if(!is.na(women[row, "I12"])){
-    women[row + 1, "I13"] <- women[row, "I12"]
-  } else {women[row + 1, "I13"] <- NA}
-  
-  if(!is.na(women[row, "I13"])){
-    women[row + 1, "I14"] <- women[row, "I13"]
-  } else {women[row + 1, "I14"] <- NA}
-  
-  if(!is.na(women[row, "I14"])){
-    women[row + 1, "I15"] <- women[row, "I14"]
-  } else {women[row + 1, "I15"] <- NA}
-  
-  if(!is.na(women[row, "I15"])){
-    women[row + 1, "I16"] <- women[row, "I15"]
-  } else {women[row + 1, "I16"] <- NA}
-  
-  if(!is.na(women[row, "I16"])){
-    women[row + 1, "I17"] <- women[row, "I16"]
-  } else {women[row + 1, "I17"] <- NA}
-  
-  if(!is.na(women[row, "I17"])){
-    women[row + 1, "I18"] <- women[row, "I17"]
-  } else {women[row + 1, "I18"] <- NA}
-  
-  if(!is.na(women[row, "I18"])){
-    women[row + 1, "I19"] <- women[row, "I18"]
-  } else {women[row + 1, "I19"] <- NA}
-  
-  if(!is.na(women[row, "I19"])){
-    women[row + 1, "I20"] <- women[row, "I19"]
-  } else {women[row + 1, "I20"] <- NA}
-  
-  if(!is.na(women[row, "I20"])){
-    women[row + 1, "I21"] <- women[row, "I20"]
-  } else {women[row + 1, "I21"] <- NA}
-  
-  if(!is.na(women[row, "I21"])){
-    women[row + 1, "I22"] <- women[row, "I21"]
-  } else {women[row + 1, "I22"] <- NA}
-  
-  if(!is.na(women[row, "I22"])){
-    women[row + 1, "I23"] <- women[row, "I22"]
-  } else {women[row + 1, "I23"] <- NA}
-  
-  if(!is.na(women[row, "I23"])){
-    women[row + 1, "I24"] <- women[row, "I23"]
-  } else {women[row + 1, "I24"] <- NA}
-  
+for (row in 1:nrow(women)) {
+  women[row + 1, "I1"] <-   ifelse(is.na(women[row, "susceptible_reinf"]), women[row, "susceptible_naive"] * women[row, "rate"], (women[row, "susceptible_naive"] * women[row, "rate"]) + (women[row, "susceptible_reinf"] * women[row, "rate"]))
+  women[row + 1, "susceptible_naive"] <- women[row, "susceptible_naive"] - (women[row, "susceptible_naive"] * women[row, "rate"])
+  women[row + 1, "susceptible_reinf"] <- ifelse(is.na(women[row, "susceptible_reinf"]), women[row, "I24"], women[row, "susceptible_reinf"] - (women[row, "susceptible_reinf"] * women[row, "rate"]) + women[row, "I24"])
+
+  for (month in 2:n_interest){
+    if(!is.na(women[row, paste0("I", month-1)])){
+      women[row + 1, paste0("I", month)] <- women[row, paste0("I", month-1)]
+    } else {women[row + 1, paste0("I", month)] <- NA}
+  }
 }
 
+# reshaping data for plotting
 women.long <- women %>% 
-  mutate(sum = rowSums(across(c("susceptible", "I1":"I24")), na.rm = TRUE)) %>% 
-  pivot_longer(c("I1":"I24", "susceptible"), names_to = "infection", values_to = "count") %>% 
-  mutate(infection = factor(infection, levels = c("susceptible", str_c(rep("I", 24), 1:24))),
+  filter(!is.na(month)) %>% 
+  mutate(sum = rowSums(across(c("susceptible_naive", "susceptible_reinf", "I1":"I24")), na.rm = TRUE)) %>% 
+  pivot_longer(c("I1":"I24", "susceptible_naive", "susceptible_reinf"), names_to = "infection", values_to = "count") %>% 
+  mutate(infection = factor(infection, levels = c("susceptible_naive", "susceptible_reinf", str_c(rep("I", 24), 1:24))),
          proportion = count/sum)
 
 # plot infection status in women
 women.long %>% 
   ggplot() +
   geom_bar(aes(x = time, y = proportion, fill = infection), position = "fill", stat = "identity") +
-  scale_fill_manual(values = c("grey", viridis(24))) +
-  scale_x_continuous(breaks = seq(1, 193, 6), labels = c(rep(c("January", "July"), 16), "January")) +
+  scale_fill_manual(values = c("lightgrey", "darkgrey", viridis(24))) +
+  scale_x_continuous(breaks = seq(1, nrow(women), 6), labels = c(rep(c("January", "July"), rep), "January")) +
   theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(x = "Time",
        y = "Proportion",
        fill = "Infection Status")
 
+# plotting susceptible naive women
+women %>% 
+  ggplot() +
+  geom_line(aes(x = time, y = susceptible_naive)) +
+  scale_x_continuous(breaks = seq(1, nrow(women), 6), labels = c(rep(c("January", "July"), rep), "January")) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Time",
+       y = "Count")
+  
 # women.long %>%
 #   plot_ly() %>%
 #   add_trace(x = ~time,
