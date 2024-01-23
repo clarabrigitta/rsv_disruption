@@ -10,9 +10,9 @@ library(viridisLite)
 library(plotly)
 
 # load data
-rate <- read.csv("respiratory_age_20231220.csv") %>%
+rate <- read.csv("./data/respiratory_age_20231220.csv") %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d"))
-count <- read.csv("respiratory_scot_20231220.csv") %>%
+count <- read.csv("./data/respiratory_scot_20231220.csv") %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d"))
 restrict <- read_excel("uk_restrictions.xlsx") %>% 
   mutate(start = as.Date(start))
