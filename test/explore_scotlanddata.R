@@ -14,7 +14,7 @@ rate <- read.csv("./data/respiratory_age_20231220.csv") %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d"))
 count <- read.csv("./data/respiratory_scot_20231220.csv") %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d"))
-restrict <- read_excel("uk_restrictions.xlsx") %>% 
+restrict <- read_excel("./data/uk_restrictions.xlsx") %>% 
   mutate(start = as.Date(start))
 
 # percentage of rate per age group
