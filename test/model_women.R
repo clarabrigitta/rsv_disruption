@@ -11,7 +11,8 @@ library(plotly)
 
 # history of infection model in women, calculate infection status in 1,000,000 women based on monthly infection rate
 n_interest <- 24 # number of months of interest for history of infection
-rep <- 80 # number of years
+rep <- 75 # number of years
+rate_scale <- 1 # scaling rate of infection for exploration
 
 women <- as.data.frame(matrix(NA, 12*rep, 5+n_interest))
 colnames(women) <- c("time", "month", "susceptible_naive", "susceptible_reinf", "rate", str_c(rep("I", n_interest), 1:n_interest))
@@ -20,12 +21,12 @@ women <- women %>% mutate(month = rep(month.abb, rep),
                           time = 1:nrow(women),
                           # rate = 0.05,
                           # rate = ifelse(month %in% c(month.abb[11:12], month.abb[1:3]), 0.10, 0.05),
-                          rate = case_when(month == month.abb[1] ~ 0.015,
+                          rate = (case_when(month == month.abb[1] ~ 0.015,
                                            month %in% month.abb[2:3] ~ 0.005,
                                            month %in% month.abb[4:8] ~ 0.000,
                                            month == month.abb[9] ~ 0.010,
                                            month == month.abb[10] ~ 0.020,
-                                           month %in% month.abb[11:12] ~ 0.045))
+                                           month %in% month.abb[11:12] ~ 0.045))*rate_scale)
 
 # initial state
 women[1, "susceptible_naive"] <- 1000000
@@ -56,6 +57,7 @@ women.long <- women %>%
 
 # plot infection status in women
 women.long %>% 
+  filter(time > 12*60) %>%
   ggplot() +
   geom_bar(aes(x = time, y = proportion, fill = infection), position = "fill", stat = "identity") +
   # geom_line(aes(x = time, y = rate*10), linetype = "solid", colour = "red") +
@@ -75,6 +77,7 @@ women.long %>%
 
 # plot monthly infections
 women %>% 
+  filter(time > 12*60) %>%
   mutate(I = lead(I1, 1)) %>% 
   ggplot() +
   geom_line(aes(x = time, y = I)) +
@@ -90,7 +93,7 @@ women %>%
         axis.line.y.right = element_line(color = "blue")) +
   labs(x = "Time")
 
-# cumulative annual incidence proportion
+# cumulative annual incidence and proportion
 women.annual <- women %>%
   filter(!is.na(month)) %>% 
   mutate(year = rep(1:rep, each = 12),
@@ -104,12 +107,13 @@ women.annual <- women %>%
 
 # plot annual incidence proportion
 women.annual %>% 
-  ggplot() +
-  scale_x_continuous(breaks = seq(1, 80, 2)) +
-  geom_line(aes(x = year, y = annual_rate)) +
+  ggplot(aes(x = year, y = infected)) +
+  scale_x_continuous(breaks = seq(0, 80, 5)) +
+  geom_bar(stat = "identity") +
   theme_bw() +
   labs(x = "Year",
-       y = "Annual Incidence Proportion")
+       y = "Annual Incidence")
+
 
 # plotting susceptible naive women
 # women %>% 
@@ -131,13 +135,13 @@ women.annual %>%
 #   layout(barmode = "stack")
 
 # history of infection model with disruption
-n_burn <- 50 # burn-in period
+n_burn <- 65 # burn-in period
 
 women.disrupt <- women
-# women.disrupt[(12*n_burn+3):(12*(n_burn+1)+3), "rate"] <- 0 # setting disruption after 25 year burn-in, 0 between March
+women.disrupt[(12*n_burn+3):(12*(n_burn+1)+3), "rate"] <- 0 # setting disruption after 25 year burn-in, 0 between March
 # women.disrupt[(12*n_burn+3):(12*(n_burn+1)+8), "rate"] <- as.data.frame(c(rep(0, 13), seq(0, 0.008, 0.002))) # option 1: setting disruption after 25 year burn-in, 0 between March then gradual increase until September
 # women.disrupt[(12*n_burn+3):(12*(n_burn+1)+8), "rate"] <- as.data.frame(c(rep(0, 13), rep(0.002, 3), rep(0.005, 2))) # option 2: setting disruption after 25 year burn-in, 0 between March then step-wise following restrictions lifting until September
-women.disrupt[(12*n_burn+3):(12*(n_burn+1)+8), "rate"] <- as.data.frame(c(rep(0, 13), rep(0.01, 2), rep(0, 3))) # option 3: setting disruption after 25 year burn-in, 0 between March then increase + decrease
+# women.disrupt[(12*n_burn+3):(12*(n_burn+1)+8), "rate"] <- as.data.frame(c(rep(0, 13), rep(0.01, 2), rep(0, 3))) # option 3: setting disruption after 25 year burn-in, 0 between March then increase + decrease
 women.disrupt[, c("susceptible_naive", "susceptible_reinf", str_c(rep("I", n_interest), 1:n_interest))] <- NA
 
 # initial state
@@ -167,6 +171,7 @@ women.disrupt.long <- women.disrupt %>%
 
 # plot infection status in women
 women.disrupt.long %>% 
+  filter(time > 12*60) %>%
   ggplot() +
   geom_bar(aes(x = time, y = proportion, fill = infection), position = "fill", stat = "identity") +
   geom_vline(aes(xintercept = 12*n_burn+3), color = "red") +
@@ -181,6 +186,7 @@ women.disrupt.long %>%
 
 # plot monthly infections
 women.disrupt %>% 
+  filter(time > 12*60) %>%
   mutate(I = lead(I1, 1)) %>% 
   ggplot() +
   geom_line(aes(x = time, y = I)) +
