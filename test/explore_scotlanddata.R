@@ -10,9 +10,9 @@ library(viridisLite)
 library(plotly)
 
 # load data
-rate <- read.csv("./data/respiratory_age_20231220.csv") %>%
+rate <- read.csv("./data/respiratory_age_20240131.csv") %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d"))
-count <- read.csv("./data/respiratory_scot_20231220.csv") %>%
+count <- read.csv("./data/respiratory_scot_20240131.csv") %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d"))
 restrict <- read_excel("./data/uk_restrictions.xlsx") %>% 
   mutate(start = as.Date(start))
@@ -29,9 +29,11 @@ count %>%
   # filter(Pathogen == "Respiratory syncytial virus") %>%
   ggplot() +
   geom_line(aes(x = date, y = NumberCasesPerWeek, colour = Pathogen)) +
+  scale_x_date(date_breaks = "1 month", date_labels =  "%b %Y") +
   scale_colour_viridis_d(option = "D") +
   theme_bw() +
-  labs(x = "Year",
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Time",
        y = "Number of Cases (per week)")
 
 plot_ly() %>% 
@@ -49,10 +51,13 @@ rate %>%
   filter(Pathogen == "Respiratory syncytial virus") %>%
   ggplot() +
   geom_line(aes(x = date, y = RatePer100000, colour = AgeGroup)) +
-  scale_colour_viridis_d(option = "D") +
+  scale_x_date(date_breaks = "1 month", date_labels =  "%b %Y") +
+  scale_colour_viridis_d(option = "H") +
   theme_bw() +
-  labs(x = "Year",
-       y = "Rate (per 100,000)")
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Time",
+       y = "Rate (per 100,000)",
+       colour = "Age Group")
 
 plot_ly() %>% 
   add_trace(data = filter(rate, Pathogen == "Respiratory syncytial virus"),
