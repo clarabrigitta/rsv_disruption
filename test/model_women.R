@@ -93,20 +93,25 @@ women %>%
         axis.line.y.right = element_line(color = "blue")) +
   labs(x = "Time")
 
-# cumulative annual incidence and proportion
-women.annual <- women %>%
+# cumulative annual incidence
+women.annual.v1 <- women %>%
   filter(!is.na(month)) %>% 
   mutate(year = rep(1:rep, each = 12),
-         I0 = lead(I1),
-         susceptible_total = rowSums(across(c("susceptible_naive", "susceptible_reinf")), na.rm = TRUE)) %>% 
+         I0 = lead(I1)) %>% 
   group_by(year) %>% 
-  summarise(infected = sum(I0),
-            susceptible = sum(susceptible_total)) %>% 
-  ungroup() %>% 
-  mutate(annual_rate = infected/susceptible)
+  summarise(infected = sum(I0)) %>% 
+  ungroup()
+
+women.annual.v2 <- women %>%
+  filter(!is.na(month)) %>% 
+  mutate(year = rep(1:rep, each = 12),
+         I0 = lead(I1)) %>% 
+  group_by(year) %>% 
+  mutate(cumsum = cumsum(I0))
 
 # plot annual incidence proportion
-women.annual %>% 
+women.annual.v1 %>% 
+  filter(year > 60) %>%
   ggplot(aes(x = year, y = infected)) +
   scale_x_continuous(breaks = seq(0, 80, 5)) +
   geom_bar(stat = "identity") +
@@ -114,6 +119,17 @@ women.annual %>%
   labs(x = "Year",
        y = "Annual Incidence")
 
+women.annual.v2 %>% 
+  mutate(year = as.character(year)) %>% 
+  filter(time > 12*60) %>%
+  ggplot(aes(x = time, y = cumsum, fill = year)) +
+  scale_x_continuous(breaks = seq(1, nrow(women), 6), labels = c(rep(c("January", "July"), rep), "January")) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis_d(option = "D") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Time",
+       y = "Cumulative Incidence")
 
 # plotting susceptible naive women
 # women %>% 
@@ -203,25 +219,42 @@ women.disrupt %>%
   labs(x = "Time")
 
 # cumulative annual incidence proportion
-women.disrupt.annual <- women.disrupt %>%
+women.disrupt.annual.v1 <- women.disrupt %>%
   filter(!is.na(month)) %>% 
   mutate(year = rep(1:rep, each = 12),
-         I0 = lead(I1),
-         susceptible_total = rowSums(across(c("susceptible_naive", "susceptible_reinf")), na.rm = TRUE)) %>% 
+         I0 = lead(I1)) %>% 
   group_by(year) %>% 
-  summarise(infected = sum(I0),
-            susceptible = sum(susceptible_total)) %>% 
-  ungroup() %>% 
-  mutate(annual_rate = infected/susceptible)
+  summarise(infected = sum(I0)) %>% 
+  ungroup()
+
+women.disrupt.annual.v2 <- women.disrupt %>%
+  filter(!is.na(month)) %>% 
+  mutate(year = rep(1:rep, each = 12),
+         I0 = lead(I1)) %>% 
+  group_by(year) %>% 
+  mutate(cumsum = cumsum(I0))
 
 # plot annual incidence proportion
-women.disrupt.annual %>% 
-  ggplot() +
-  scale_x_continuous(breaks = seq(1, 80, 2)) +
-  geom_line(aes(x = year, y = annual_rate)) +
+women.disrupt.annual.v1 %>% 
+  filter(year > 60) %>%
+  ggplot(aes(x = year, y = infected)) +
+  scale_x_continuous(breaks = seq(0, 80, 5)) +
+  geom_bar(stat = "identity") +
   theme_bw() +
   labs(x = "Year",
-       y = "Annual Incidence Proportion")
+       y = "Annual Incidence")
+
+women.disrupt.annual.v2 %>% 
+  mutate(year = as.character(year)) %>% 
+  filter(time > 12*60) %>%
+  ggplot(aes(x = time, y = cumsum, fill = year)) +
+  scale_x_continuous(breaks = seq(1, nrow(women), 6), labels = c(rep(c("January", "July"), rep), "January")) +
+  geom_bar(stat = "identity") +
+  scale_fill_viridis_d(option = "D") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(x = "Time",
+       y = "Cumulative Incidence")
 
 # # determine average infectious status proportions from 7th year onwards
 # women.prop <- women.long %>% 
