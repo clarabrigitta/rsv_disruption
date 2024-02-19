@@ -28,6 +28,10 @@ women <- women %>% mutate(month = rep(month.abb, rep),
                                            month == month.abb[10] ~ 0.020,
                                            month %in% month.abb[11:12] ~ 0.045))*rate_scale)
 
+if(disruption == TRUE){
+  women[(12*n_burn+3):(12*(n_burn+1)+3), "rate"] <- 0 # setting disruption after 25 year burn-in, 0 between March
+}
+
 # initial state
 women[1, "susceptible_naive"] <- 1000000
 # women[1, "I1"] <- 200000
@@ -75,6 +79,29 @@ women.long %>%
        y = "Proportion",
        fill = "Infection Status")
 
+women.long %>% 
+  filter(time > 12*60) %>%
+  filter(!infection %in% c("susceptible_naive", "susceptible_reinf")) %>%
+  ggplot() +
+  geom_tile(aes(x = time, y = infection, fill = proportion)) +
+  scale_x_continuous(breaks = seq(1, nrow(women), 6), labels = c(rep(c("January", "July"), rep), "January")) +
+  scale_y_discrete(limits = rev) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "right") +
+  labs(x = "Time",
+       y = "Time Since Infection",
+       fill = "Proportion (%)")
+
+women.long %>% 
+  filter(time > 12*60) %>%
+  select(time, month, infection, count) %>% 
+  plot_ly(x = ~time,
+          y = ~infection,
+          z = ~count) %>% 
+  add_surface()
+  
+  
 # plot monthly infections
 women %>% 
   filter(time > 12*60) %>%
@@ -103,8 +130,10 @@ women.annual.v1 <- women %>%
   ungroup()
 
 women.annual.v2 <- women %>%
-  filter(!is.na(month)) %>% 
-  mutate(year = rep(1:rep, each = 12),
+  filter(!is.na(month)) %>%
+  tail(-6) %>% # changing years to be jul-jul instead of jan-jan
+  head(-6) %>% 
+  mutate(year = rep(1:(rep-1), each = 12), # rep decreased by 1 for jul-jul year
          I0 = lead(I1)) %>% 
   group_by(year) %>% 
   mutate(cumsum = cumsum(I0))
@@ -113,7 +142,7 @@ women.annual.v2 <- women %>%
 women.annual.v1 %>% 
   filter(year > 60) %>%
   ggplot(aes(x = year, y = infected)) +
-  scale_x_continuous(breaks = seq(0, 80, 5)) +
+  scale_x_continuous(breaks = seq(1, nrow(women), 6), labels = c(rep(c("January", "July"), rep), "January")) +
   geom_bar(stat = "identity") +
   theme_bw() +
   labs(x = "Year",
@@ -200,6 +229,20 @@ women.disrupt.long %>%
        y = "Proportion",
        fill = "Infection Status")
 
+women.disrupt.long %>% 
+  filter(time > 12*60) %>%
+  filter(!infection %in% c("susceptible_naive", "susceptible_reinf")) %>%
+  ggplot() +
+  geom_tile(aes(x = time, y = infection, fill = proportion)) +
+  scale_x_continuous(breaks = seq(1, nrow(women), 6), labels = c(rep(c("January", "July"), rep), "January")) +
+  scale_y_discrete(limits = rev) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "right") +
+  labs(x = "Time",
+       y = "Time Since Infection",
+       fill = "Proportion (%)")
+
 # plot monthly infections
 women.disrupt %>% 
   filter(time > 12*60) %>%
@@ -218,7 +261,7 @@ women.disrupt %>%
         axis.line.y.right = element_line(color = "blue")) +
   labs(x = "Time")
 
-# cumulative annual incidence proportion
+# cumulative annual incidence
 women.disrupt.annual.v1 <- women.disrupt %>%
   filter(!is.na(month)) %>% 
   mutate(year = rep(1:rep, each = 12),
@@ -228,8 +271,10 @@ women.disrupt.annual.v1 <- women.disrupt %>%
   ungroup()
 
 women.disrupt.annual.v2 <- women.disrupt %>%
-  filter(!is.na(month)) %>% 
-  mutate(year = rep(1:rep, each = 12),
+  filter(!is.na(month)) %>%
+  tail(-6) %>% # changing years to be jul-jul instead of jan-jan
+  head(-6) %>% 
+  mutate(year = rep(1:(rep-1), each = 12), # rep decreased by 1 for jul-jul year
          I0 = lead(I1)) %>% 
   group_by(year) %>% 
   mutate(cumsum = cumsum(I0))
@@ -248,8 +293,8 @@ women.disrupt.annual.v2 %>%
   mutate(year = as.character(year)) %>% 
   filter(time > 12*60) %>%
   ggplot(aes(x = time, y = cumsum, fill = year)) +
-  scale_x_continuous(breaks = seq(1, nrow(women), 6), labels = c(rep(c("January", "July"), rep), "January")) +
   geom_bar(stat = "identity") +
+  scale_x_continuous(breaks = seq(1, nrow(women), 6), labels = c(rep(c("January", "July"), rep), "January")) +
   scale_fill_viridis_d(option = "D") +
   theme_bw() +
   theme(legend.position = "none") +

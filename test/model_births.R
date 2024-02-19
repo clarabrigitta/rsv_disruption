@@ -23,6 +23,7 @@ data <- read_excel("./data/births_pregnancies.xlsx", sheet = "All") %>%
 
 # testing for one month of births (first 3 years of life)
 rep <- 3 # number of years
+rate_scale <- 5
 
 births <- as.data.frame(matrix(NA, 12*rep, 5))
 colnames(births) <- c("time", "month", "rate", "susceptible", "infected")
@@ -31,12 +32,12 @@ births <- births %>% mutate(month = rep(month.abb, rep),
                           time = 1:nrow(births),
                           # rate = 0.05,
                           # rate = ifelse(month %in% c(month.abb[11:12], month.abb[1:3]), 0.10, 0.05),
-                          rate = case_when(month == month.abb[1] ~ 0.015,
+                          rate = (case_when(month == month.abb[1] ~ 0.015,
                                            month %in% month.abb[2:3] ~ 0.005,
                                            month %in% month.abb[4:8] ~ 0.000,
                                            month == month.abb[9] ~ 0.010,
                                            month == month.abb[10] ~ 0.020,
-                                           month %in% month.abb[11:12] ~ 0.045))
+                                           month %in% month.abb[11:12] ~ 0.045))*rate_scale)
 
 births[1, "susceptible"] <- 61942
 
@@ -46,15 +47,49 @@ for(row in 1:nrow(births)){
 }
 
 births <- births %>% 
-  mutate(cum_sum = cumsum(infected))
+  mutate(cum_sum = cumsum(infected),
+         prop = (cum_sum/61942)*100)
 
 births %>% 
   ggplot() +
-  geom_line(aes(x = time, y = cum_sum)) +
+  geom_line(aes(x = time, y = prop)) +
   scale_x_continuous(breaks = seq(1, nrow(births), 6), labels = c(rep(c("January", "July"), rep), "January")) +
   theme_bw() +
   labs(x = "",
-       y = "Cumulative Infections")
+       y = "Proportion Infected (%)")
+
+births %>% 
+  plot_ly() %>% 
+  add_trace(x = ~time,
+            y = ~prop,
+            type = "scatter",
+            mode = "lines",
+            text = ~month,
+            hovertemplate = paste('<b>Month</b>: %{text}',
+                                  '<br><b>Proportion Infected</b>: %{y}',
+                                  '<extra></extra>')) %>% 
+  layout(xaxis = list(title = "Time",
+                      tickmode = "array",
+                      ticktext = list("January", "July", "January", "July", "January", "July", "January"),
+                      tickvals = list(1, 7, 13, 19, 25, 31, 37)),
+         yaxis = list(title = "Proportion Infected (%)"))
+
+# plotting rate of infection
+births %>% 
+  plot_ly() %>% 
+  add_trace(x = ~time,
+            y = ~rate,
+            type = "scatter",
+            mode = "lines",
+            text = ~month,
+            hovertemplate = paste('<b>Month</b>: %{text}',
+                                  '<br><b>Rate</b>: %{y}',
+                                  '<extra></extra>')) %>% 
+  layout(xaxis = list(title = "Time",
+                      tickmode = "array",
+                      ticktext = list("January", "July", "January", "July", "January", "July", "January"),
+                      tickvals = list(1, 7, 13, 19, 25, 31, 37)),
+         yaxis = list(title = "Rate of Infection"))
   
 # data <- read_excel("./data/births_pregnancies.xlsx", sheet = "All") %>%
 #   mutate(year_month = paste(year, month, sep = "_"),
