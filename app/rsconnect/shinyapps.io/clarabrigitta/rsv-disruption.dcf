@@ -1,0 +1,12 @@
+name: rsv-disruption
+title: rsv-disruption
+username: clarabrigitta
+account: clarabrigitta
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 11265135
+bundleId: 8271489
+url: https://clarabrigitta.shinyapps.io/rsv-disruption/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
