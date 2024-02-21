@@ -4,8 +4,6 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(zoo)
-library(scales)
-library(stringr)
 library(viridisLite)
 library(plotly)
 
@@ -13,20 +11,21 @@ library(plotly)
 data <- read_excel("./data/births_pregnancies.xlsx", sheet = "All") %>%
   mutate(year_month = paste(year, month, sep = "_"),
          date = as.Date(as.yearmon(`year_month`, "%Y_%b")),) %>%
-  select(year, month, date, births) %>% 
-  mutate(rate = case_when(month == month.abb[1] ~ 0.015,
-                          month %in% month.abb[2:3] ~ 0.005,
-                          month %in% month.abb[4:8] ~ 0.000,
-                          month == month.abb[9] ~ 0.010,
-                          month == month.abb[10] ~ 0.020,
-                          month %in% month.abb[11:12] ~ 0.045))
+  select(year, month, date, births) 
+# %>% 
+#   mutate(rate = case_when(month == month.abb[1] ~ 0.015,
+#                           month %in% month.abb[2:3] ~ 0.005,
+#                           month %in% month.abb[4:8] ~ 0.000,
+#                           month == month.abb[9] ~ 0.010,
+#                           month == month.abb[10] ~ 0.020,
+#                           month %in% month.abb[11:12] ~ 0.045))
 
-# testing for one month of births (first 3 years of life)
+# testing model for one month of births (first 3 years of life)
 rep <- 3 # number of years
-rate_scale <- 5
+rate_scale <- 5 # scaling rate of infection to achieve 90-95% in first 3yrs of life
 
-births <- as.data.frame(matrix(NA, 12*rep, 5))
-colnames(births) <- c("time", "month", "rate", "susceptible", "infected")
+births <- as.data.frame(matrix(NA, 12*rep, 9))
+colnames(births) <- c("time", "month", "rate", "susceptible", "sus_1", "sus_2", "sus_3", "sus_4", "infected")
 
 births <- births %>% mutate(month = rep(month.abb, rep),
                           time = 1:nrow(births),
@@ -46,11 +45,22 @@ for(row in 1:nrow(births)){
   births[row + 1, "susceptible"] <- births[row, "susceptible"] - births[row, "infected"]
 }
 
-births <- births %>% 
+# plot monthly infections
+births %>% 
+  ggplot() +
+  geom_line(aes(x = time, y = infected)) +
+  scale_x_continuous(breaks = seq(1, nrow(births), 6), labels = c(rep(c("January", "July"), rep), "January")) +
+  theme_bw() +
+  labs(x = "",
+       y = "Count")
+
+# reshaping for cumulative sums
+births_cum <- births %>% 
   mutate(cum_sum = cumsum(infected),
          prop = (cum_sum/61942)*100)
 
-births %>% 
+# plot of cumulative outputs
+births_cum %>% 
   ggplot() +
   geom_line(aes(x = time, y = prop)) +
   scale_x_continuous(breaks = seq(1, nrow(births), 6), labels = c(rep(c("January", "July"), rep), "January")) +
@@ -58,7 +68,7 @@ births %>%
   labs(x = "",
        y = "Proportion Infected (%)")
 
-births %>% 
+births_cum %>% 
   plot_ly() %>% 
   add_trace(x = ~time,
             y = ~prop,
