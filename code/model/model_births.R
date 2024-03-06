@@ -7,102 +7,67 @@ library(zoo)
 library(viridisLite)
 library(plotly)
 
+# -------------------------------------------------------------------------
+
 # load data and calculate over 2yrs, under 2yrs, pregnancy trimester counts and proportions
 data <- read_excel("./data/births_pregnancies.xlsx", sheet = "All") %>%
   mutate(year_month = paste(year, month, sep = "_"),
          date = as.Date(as.yearmon(`year_month`, "%Y_%b")),) %>%
   select(year, month, date, births) 
-# %>% 
-#   mutate(rate = case_when(month == month.abb[1] ~ 0.015,
-#                           month %in% month.abb[2:3] ~ 0.005,
-#                           month %in% month.abb[4:8] ~ 0.000,
-#                           month == month.abb[9] ~ 0.010,
-#                           month == month.abb[10] ~ 0.020,
-#                           month %in% month.abb[11:12] ~ 0.045))
 
-# testing model for one month of births (first 3 years of life) using totals
-rep <- 3 # number of years
-rate_scale <- 5 # scaling rate of infection to achieve 90-95% in first 3yrs of life
-
-births <- as.data.frame(matrix(NA, 12*rep, 5))
-colnames(births) <- c("time", "month", "rate", "susceptible", "infected") # use for totals only
-
-births <- births %>% mutate(month = rep(month.abb, rep),
-                          time = 1:nrow(births),
-                          # rate = 0.05,
-                          # rate = ifelse(month %in% c(month.abb[11:12], month.abb[1:3]), 0.10, 0.05),
-                          rate = (case_when(month == month.abb[1] ~ 0.015,
-                                           month %in% month.abb[2:3] ~ 0.005,
-                                           month %in% month.abb[4:8] ~ 0.000,
-                                           month == month.abb[9] ~ 0.010,
-                                           month == month.abb[10] ~ 0.020,
-                                           month %in% month.abb[11:12] ~ 0.045))*rate_scale)
-
-# births[1, "susceptible"] <- 61942 # january
-births[1, "susceptible"] <- 61920 # july
-
-for(row in 1:nrow(births)){
-  births[row, "infected"] <- births[row, "susceptible"] * births[row, "rate"]
-  births[row + 1, "susceptible"] <- births[row, "susceptible"] - births[row, "infected"]
-}
-
-# plot monthly infections
-births %>% 
-  ggplot() +
-  geom_line(aes(x = time, y = infected)) +
-  scale_x_continuous(breaks = seq(1, nrow(births), 6), labels = c(rep(c("January", "July"), rep), "January")) +
-  theme_bw() +
-  labs(x = "",
-       y = "Count")
+# -------------------------------------------------------------------------
 
 # testing model for one month of births (first 3 years of life) using totals
 rep <- 3 # number of years
 rate_scale <- 5 # scaling rate of infection to achieve 90-95% in first 3yrs of life
 
 births <- as.data.frame(matrix(NA, 12*rep, 4))
-colnames(births) <- c("time", "month", "rate", "susceptible") # use when splitting into immunity levels
+colnames(births) <- c("time", "month", "rate", "susceptible")
 
-births <- births %>% mutate(month = rep(month.abb, rep), # january
-                            # month = rep(c(month.abb[7:12], month.abb[1:6]), rep), # july
+births <- births %>% mutate(month = rep(month.abb, rep), # january, july: rep(c(month.abb[7:12], month.abb[1:6]), rep)
                             time = 1:nrow(births),
-                            # rate = 0.05,
-                            # rate = ifelse(month %in% c(month.abb[11:12], month.abb[1:3]), 0.10, 0.05),
-                            rate_base = (case_when(month == month.abb[1] ~ 0.015,
+                            rate = (case_when(month == month.abb[1] ~ 0.015,
                                               month %in% month.abb[2:3] ~ 0.005,
                                               month %in% month.abb[4:8] ~ 0.000,
                                               month == month.abb[9] ~ 0.010,
                                               month == month.abb[10] ~ 0.020,
                                               month %in% month.abb[11:12] ~ 0.045))*rate_scale)
 
-births[1, "susceptible"] <- 61942 # january
-# births[1, "susceptible"] <- 61920 # july
+births[1, "susceptible"] <- 61942 # january, july: 61920
 
-# join proportion of women to births
+# join women's immunity level proportions to births
 births <- births %>% 
   left_join(women.prop %>% select(-count)) %>% 
-  # set rates based on immunity level
-  mutate(rate_inf = case_when(level == 1 ~ rate_base * 0,
-                          level == 2 ~ rate_base * 0.5,
-                          level == 3 ~ rate_base * 0.5,
-                          level == 4 ~ rate_base * 1),
-         rate_dis = case_when(level == 1 ~ rate_base * 0,
-                              level == 2 ~ rate_base * 0,
-                              level == 3 ~ rate_base * 0.5,
-                              level == 4 ~ rate_base * 1)) %>% 
-  mutate(rate = rate_base,
-         proportion = ifelse(month == "Jan", proportion, NA), # change based on january vs july
-         susceptible_sub = susceptible * proportion,
-         infected = susceptible_sub * rate) %>% 
+  # set probability of infection/disease based on immunity level
+  mutate(prob_inf = case_when(level == 1 ~ 0,
+                              level == 2 ~ 0.5,
+                              level == 3 ~ 0.5,
+                              level == 4 ~ 1),
+         prob_dis = case_when(level == 1 ~ 0,
+                              level == 2 ~ 0,
+                              level == 3 ~ 0.5,
+                              level == 4 ~ 1)) %>% 
+  # calculate risk of infection/disease based on immunity level
+  mutate(risk_inf = rate * prob_inf,
+         risk_dis = rate * prob_inf * prob_dis,
+         # determine number of susceptible based on immunity level proportions
+         proportion = ifelse(month == "Jan", proportion, NA), # change based on month of interest (e.g., Jan vs Jul)
+         susceptible_sub = susceptible * proportion) %>% 
   select(-c(susceptible, proportion)) %>% 
+  rename(susceptible = susceptible_sub) %>% 
+  # determine initial number of infected and disease
+  mutate(infected = susceptible * rate * prob_inf,
+         disease = infected * prob_dis) %>% 
   group_by(level) %>% 
-  nest()
+  nest()        
 
 for(lev in 1:4){
   subdata <- births[[2]][[lev]]
   
   for(row in 1:nrow(subdata)){
-    subdata[row, "infected"] <- subdata[row, "susceptible_sub"] * subdata[row, "rate"]
-    subdata[row + 1, "susceptible_sub"] <- subdata[row, "susceptible_sub"] - subdata[row, "infected"]
+    subdata[row, "infected"] <- subdata[row, "susceptible"] * subdata[row, "rate"] * subdata[row, "prob_inf"]
+    subdata[row, "disease"] <- subdata[row, "infected"] * subdata[row, "prob_dis"]
+    subdata[row + 1, "susceptible"] <- subdata[row, "susceptible"] - subdata[row, "infected"]
   }
   
   births[[2]][[lev]] <- subdata
@@ -110,88 +75,55 @@ for(lev in 1:4){
 
 births <- births %>% unnest() %>% filter(!is.na(month))
 
-# plot monthly infections
-births %>% 
+# calculating and adding rows for totals
+births <- bind_rows(births,
+                    births %>% 
+                      group_by(time, month) %>% 
+                      summarise(susceptible = sum(susceptible),
+                                infected = sum(infected),
+                                disease = sum(disease)) %>% 
+                      ungroup() %>% 
+                      mutate(level = "total",
+                             rate = NA,
+                             prob_inf = NA,
+                             prob_dis = NA,
+                             risk_inf = NA,
+                             risk_dis = NA))
+
+# save model output
+saveRDS(births, file = "./output/data/births.rds")
+
+# -------------------------------------------------------------------------
+# introduce waning
+waning <- as.data.frame(matrix(NA, 12*3, 3))
+colnames(waning) <- c("time", "month", "waning")
+waning <- waning %>% 
+  mutate(time = 1:36,
+         month = rep(month.abb, 3),
+         waning = case_when(time <= 6 ~ 100,
+                            time > 6 & time <= 12 ~ 80,
+                            time > 12 & time <= 24 ~ 40,
+                            time > 24 ~ 0))
+
+# plot waning curve
+waning %>% 
   ggplot() +
-  geom_line(aes(x = time, y = infected, colour = level)) +
-  scale_x_continuous(breaks = seq(1, 36, 6), labels = c(rep(c("January", "July"), rep))) +
-  scale_colour_viridis_d(option = "H") +
+  geom_line(aes(x = time, y = waning)) +
+  scale_y_continuous(breaks = seq(0, 100, 20)) +
+  scale_x_continuous(breaks = c(1, 6, 12, 24, 36)) +
   theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  labs(x = "",
-       y = "Count",
-       colour = "Immunity Level")
+  labs(x = "Months",
+       y = "Percent Reduction (%)")
 
-births %>% 
-  plot_ly() %>% 
-  add_trace(x = ~time,
-            y = ~infected,
-            type = "scatter",
-            mode = "lines",
-            text = ~month,
-            hovertemplate = paste('<b>Month</b>: %{text}',
-                                  '<br><b>Proportion Infected</b>: %{y}',
-                                  '<extra></extra>')) %>%
+test <- births %>%
+  mutate(waning = case_when(time <= 6 ~ 1,
+                            time > 6 & time <= 12 ~ 0.8,
+                            time > 12 & time <= 24 ~ 0.4,
+                            time > 24 ~ 0))
 
-# reshaping for cumulative sums
-births_cum <- births %>% 
-  mutate(cum_sum = cumsum(infected),
-         prop = (cum_sum/61942)*100)
+# -------------------------------------------------------------------------
 
-# plot of cumulative outputs
-births_cum %>% 
-  ggplot() +
-  geom_line(aes(x = time, y = prop)) +
-  scale_x_continuous(breaks = seq(1, nrow(births), 6), labels = c(rep(c("January", "July"), rep), "January")) +
-  theme_bw() +
-  labs(x = "",
-       y = "Proportion Infected (%)")
-
-births_cum %>% 
-  plot_ly() %>% 
-  add_trace(x = ~time,
-            y = ~prop,
-            type = "scatter",
-            mode = "lines",
-            text = ~month,
-            hovertemplate = paste('<b>Month</b>: %{text}',
-                                  '<br><b>Proportion Infected</b>: %{y}',
-                                  '<extra></extra>')) %>% 
-  layout(xaxis = list(title = "Time",
-                      tickmode = "array",
-                      ticktext = list("January", "July", "January", "July", "January", "July", "January"),
-                      tickvals = list(1, 7, 13, 19, 25, 31, 37)),
-         yaxis = list(title = "Proportion Infected (%)"))
-
-# plotting rate of infection
-births %>% 
-  plot_ly() %>% 
-  add_trace(x = ~time,
-            y = ~rate,
-            type = "scatter",
-            mode = "lines",
-            text = ~month,
-            hovertemplate = paste('<b>Month</b>: %{text}',
-                                  '<br><b>Rate</b>: %{y}',
-                                  '<extra></extra>')) %>% 
-  layout(xaxis = list(title = "Time",
-                      tickmode = "array",
-                      ticktext = list("January", "July", "January", "July", "January", "July", "January"),
-                      tickvals = list(1, 7, 13, 19, 25, 31, 37)),
-         yaxis = list(title = "Rate of Infection"))
-
-
-births %>% 
-  plot_ly() %>% 
-  add_trace(x = ~time, y = ~rate_base, type = "scatter", mode = "lines", linetype = ~level, color = "Base") %>%
-  add_trace(x = ~time, y = ~rate_inf, type = "scatter", mode = "lines", linetype= ~level, color = "Infection") %>%
-  add_trace(x = ~time, y = ~rate_dis, type = "scatter", mode = "lines", linetype = ~level, color = "Disease") %>%
-  layout(xaxis = list(title = "Time",
-                      tickmode = "array",
-                      ticktext = list("January", "July", "January", "July", "January", "July", "January"),
-                      tickvals = list(1, 7, 13, 19, 25, 31, 37)),
-         yaxis = list(title = "Rate"))
-  
+# unused code
 # data <- read_excel("./data/births_pregnancies.xlsx", sheet = "All") %>%
 #   mutate(year_month = paste(year, month, sep = "_"),
 #          date = as.Date(as.yearmon(`year_month`, "%Y_%b"))) %>%
@@ -216,16 +148,3 @@ births %>%
 #          prop_1sttri = preg_1sttri/sum_preg,
 #          prop_2ndtri = preg_2ndtri/sum_preg,
 #          prop_3rdtri = preg_3rdtri/sum_preg)
-
-# plot births and pregnancies
-data %>% 
-  ggplot() +
-  geom_line(aes(x = date, y = under2yr), colour = "black") +
-  scale_x_date(date_breaks = "1 year",
-               labels = date_format("%Y %b"),
-               limits = as.Date(c('2011-01-01','2023-01-01'))) +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1 )) +
-  labs(x = "Date",
-       y = "Count")
-
