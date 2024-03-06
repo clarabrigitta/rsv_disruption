@@ -4,6 +4,7 @@ library(dplyr)
 library(ggplot2)
 library(plotly)
 library(viridisLite)
+library(stringr)
 
 # load data
 women <- readRDS("./output/data/women.rds")
@@ -112,7 +113,9 @@ women.prop <- women.long %>%
                                      infection == "susceptible_reinf" ~ 4))) %>% 
   group_by(month, level) %>% 
   summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
-  ungroup()  
+  ungroup()
+
+saveRDS(women.prop, file = "./output/data/women_prop.rds")
 
 women.prop %>%
   ggplot() +
