@@ -1,0 +1,120 @@
+---
+title: "Waning and Aging Comparison"
+output: html_document
+date: "2024-03-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(tidyr)
+library(plotly)
+
+source(file = "/Users/lsh2301561/Desktop/rsv_disruption/code/plot/plot_births.R")
+```
+
+```{r data, include=FALSE}
+births <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births.rds")
+births_waning <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_waning.rds")
+births_aging <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_aging.rds")
+births_waning_aging <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_waning_aging.rds")
+women_prop <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/women_prop.rds")
+```
+## Rate of Exposure
+
+Rate of exposure remains unchanged by waning immunity and/or aging.
+
+```{r rate, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+births %>% plot_rate()
+```
+
+## Probability of Infection
+
+Probability of infection increases with time due to waning immunity.
+
+```{r prob_inf, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+manipulateWidget::combineWidgets(births %>% plot_probability(type = "infection") %>% layout(title = "No Waning or Aging"),
+                                 births_waning %>% plot_probability(type = "infection") %>% layout(title = "Waning"),
+                                 births_aging %>% plot_probability(type = "infection") %>% layout(title = "Aging"),
+                                 births_waning_aging %>% plot_probability(type = "infection") %>% layout(title = "Waning and Aging"),
+                                 nrow = 2)
+```
+
+## Probability of Disease
+
+Probability of disease decreases with time due to aging.
+
+```{r prob_dis, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+manipulateWidget::combineWidgets(births %>% plot_probability(type = "disease") %>% layout(title = "No Waning or Aging"),
+                                 births_waning %>% plot_probability(type = "disease") %>% layout(title = "Waning"),
+                                 births_aging %>% plot_probability(type = "disease") %>% layout(title = "Aging"),
+                                 births_waning_aging %>% plot_probability(type = "disease") %>% layout(title = "Waning and Aging"),
+                                 nrow = 2)
+```
+
+## Immunity Level Split
+
+Proportion of babies in immunity levels at birth.
+
+```{r proportion, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+women_prop %>% 
+  filter(month == "Jan") %>% 
+  plot_ly() %>% 
+  add_trace(x = ~month,
+            y = ~proportion*100,
+            type = "bar",
+            color = ~level, 
+            text = ~round(proportion*100, 2),
+            hoverinfo = "text") %>% 
+  layout(yaxis = list(title = "Percentage (%)"),
+         barmode = "stack")
+```
+
+## Infection
+
+Monthly count of first infections.
+
+```{r infection, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+manipulateWidget::combineWidgets(births %>% plot_infections() %>% layout(title = "No Waning or Aging"),
+                                 births_waning %>% plot_infections() %>% layout(title = "Waning"),
+                                 births_aging %>% plot_infections() %>% layout(title = "Aging"),
+                                 births_waning_aging %>% plot_infections() %>% layout(title = "Waning and Aging"),
+                                 nrow = 2)
+```
+
+## Cumulative Infections
+
+Cumulative first infection proportions.
+
+```{r cumpropinf, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+manipulateWidget::combineWidgets(births %>% plot_cumpropinf() %>% layout(title = "No Waning or Aging"),
+                                 births_waning %>% plot_cumpropinf() %>% layout(title = "Waning"),
+                                 births_aging %>% plot_cumpropinf() %>% layout(title = "Aging"),
+                                 births_waning_aging %>% plot_cumpropinf() %>% layout(title = "Waning and Aging"),
+                                 nrow = 2)
+```
+
+## Disease
+
+Monthly count of first occurrence of disease.
+
+```{r disease, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+manipulateWidget::combineWidgets(births %>% plot_disease() %>% layout(title = "No Waning or Aging"),
+                                 births_waning %>% plot_disease() %>% layout(title = "Waning"),
+                                 births_aging %>% plot_disease() %>% layout(title = "Aging"),
+                                 births_waning_aging %>% plot_disease() %>% layout(title = "Waning and Aging"),
+                                 nrow = 2)
+```
+
+## Cumulative Disease
+
+Cumulative proportions of babies experiencing disease for the first time.
+
+```{r cumpropdis, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+manipulateWidget::combineWidgets(births %>% plot_cumpropdis() %>% layout(title = "No Waning or Aging"),
+                                 births_waning %>% plot_cumpropdis() %>% layout(title = "Waning"),
+                                 births_aging %>% plot_cumpropdis() %>% layout(title = "Aging"),
+                                 births_waning_aging %>% plot_cumpropdis() %>% layout(title = "Waning and Aging"),
+                                 nrow = 2)
+```
