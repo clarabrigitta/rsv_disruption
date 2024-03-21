@@ -7,138 +7,274 @@ library(viridisLite)
 library(stringr)
 
 # load data
-births <- readRDS("./output/data/births.rds")
+# births <- readRDS("./output/data/births.rds")
+
+# plot waning
+waning <- as.data.frame(matrix(NA, 12*3, 3))
+colnames(waning) <- c("time", "month", "waning")
+waning %>%
+  mutate(time = 1:36,
+         month = rep(month.abb, 3),
+         waning = case_when(time <= 6 ~ 1,
+                            time > 6 & time <= 12 ~ 0.5,
+                            time > 12 & time <= 24 ~ 0.2,
+                            time > 24 ~ 0)) %>%
+  ggplot() +
+  geom_line(aes(x = time, y = waning)) +
+  scale_y_continuous(breaks = seq(0, 1, 0.2)) +
+  scale_x_continuous(breaks = c(1, 6, 12, 24, 36)) +
+  theme_bw() +
+  labs(x = "Months",
+       y = "Waning (%)")
+
+# plot aging
+aging <- as.data.frame(matrix(NA, 12*3, 3))
+colnames(aging) <- c("time", "month", "aging")
+aging %>%
+  mutate(time = 1:36,
+         month = rep(month.abb, 3),
+         aging = case_when(time <= 6 ~ 0,
+                           time > 6 & time <= 12 ~ 0.5,
+                           time > 12 & time <= 24 ~ 0.8,
+                           time > 24 ~ 1)) %>%
+  ggplot() +
+  geom_line(aes(x = time, y = aging)) +
+  scale_y_continuous(breaks = seq(0, 1, 0.2)) +
+  scale_x_continuous(breaks = c(1, 6, 12, 24, 36)) +
+  theme_bw() +
+  labs(x = "Months",
+       y = "Aging (%)")
 
 # plot rate of exposure
-births %>% 
-  filter(!is.na(rate)) %>% 
-  plot_ly() %>% 
-  add_trace(x = ~time,
-            y = ~rate,
-            type = "scatter",
-            mode = "lines",
-            text = ~month,
-            hovertemplate = paste('<b>Month</b>: %{text}',
-                                  '<br><b>Rate</b>: %{y}',
-                                  '<extra></extra>')) %>% 
-  layout(xaxis = list(title = "Time",
-                      tickmode = "array",
-                      ticktext = list("January", "July", "January", "July", "January", "July", "January"),
-                      tickvals = list(1, 7, 13, 19, 25, 31, 37)),
-         yaxis = list(title = "Rate of Exposure"))
+plot_rate <- function(data){
+  fig <- plot_ly() %>%
+    add_trace(data = data %>% filter(!is.na(rate)),
+              x = ~time,
+              y = ~rate,
+              type = "scatter",
+              mode = "lines",
+              text = ~month,
+              hovertemplate = paste('<b>Month</b>: %{text}',
+                                    '<br><b>Rate</b>: %{y}',
+                                    '<extra></extra>')) %>%
+    layout(xaxis = list(title = "Time",
+                        tickmode = "array",
+                        ticktext = list("January", "July", "January", "July", "January", "July", "January"),
+                        tickvals = list(1, 7, 13, 19, 25, 31, 37)),
+           yaxis = list(title = "Rate of exposure"))
+  
+  return(fig)
+}
 
-# plot probability of infection
-births %>% 
-  filter(!is.na(rate)) %>% 
-  plot_ly() %>% 
-  add_trace(x = ~time,
-            y = ~prob_inf,
-            split = ~level,
-            type = "scatter",
-            mode = "lines",
-            text = ~month,
-            hovertemplate = paste('<b>Month</b>: %{text}',
-                                  '<br><b>Probability</b>: %{y}',
-                                  '<extra></extra>')) %>% 
-  layout(xaxis = list(title = "Time",
-                      tickmode = "array",
-                      ticktext = list("January", "July", "January", "July", "January", "July", "January"),
-                      tickvals = list(1, 7, 13, 19, 25, 31, 37)),
-         yaxis = list(title = "Probability of Infection"),
-         legend = list(title = list(text = "Immunity Level")))
+# plot probability of infection/disease
 
-# plot probability of disease
-births %>% 
-  filter(!is.na(rate)) %>% 
-  plot_ly() %>% 
-  add_trace(x = ~time,
-            y = ~prob_dis,
-            split = ~level,
-            type = "scatter",
-            mode = "lines",
-            text = ~month,
-            hovertemplate = paste('<b>Month</b>: %{text}',
-                                  '<br><b>Probability</b>: %{y}',
-                                  '<extra></extra>')) %>% 
-  layout(xaxis = list(title = "Time",
-                      tickmode = "array",
-                      ticktext = list("January", "July", "January", "July", "January", "July", "January"),
-                      tickvals = list(1, 7, 13, 19, 25, 31, 37)),
-         yaxis = list(title = "Probability of Disease"),
-         legend = list(title = list(text = "Immunity Level")))
+plot_probability <- function(data, type = c("infection", "disease")){
+  
+  if(type == "infection"){
+    fig <- plot_ly() %>%
+      add_trace(data = data %>% filter(!is.na(rate)),
+                x = ~time,
+                y = ~prob_inf,
+                split = ~level,
+                type = "scatter",
+                mode = "lines",
+                text = ~month,
+                hovertemplate = paste('<b>Month</b>: %{text}',
+                                      '<br><b>Probability</b>: %{y}',
+                                      '<extra></extra>')) %>%
+      layout(xaxis = list(title = "Time since birth",
+                          tickmode = "array",
+                          ticktext = list("January", "July", "January", "July", "January", "July", "January"),
+                          tickvals = list(1, 7, 13, 19, 25, 31, 37)),
+             yaxis = list(title = "Probability of infection"),
+             legend = list(title = list(text = "Immunity Level")))
+  } else {
+    fig <- plot_ly() %>%
+      add_trace(data = data %>% filter(!is.na(rate)),
+                x = ~time,
+                y = ~prob_dis,
+                split = ~level,
+                type = "scatter",
+                mode = "lines",
+                text = ~month,
+                hovertemplate = paste('<b>Month</b>: %{text}',
+                                      '<br><b>Probability</b>: %{y}',
+                                      '<extra></extra>')) %>%
+      layout(xaxis = list(title = "Time since birth",
+                          tickmode = "array",
+                          ticktext = list("January", "July", "January", "July", "January", "July", "January"),
+                          tickvals = list(1, 7, 13, 19, 25, 31, 37)),
+             yaxis = list(title = "Probability of disease"),
+             legend = list(title = list(text = "Immunity Level")))
+  }
+  
+  return(fig)
+}
 
-# plot monthly infections
-births %>% 
-  plot_ly() %>% 
-  add_trace(x = ~time,
-            y = ~infected,
-            split = ~level,
-            colour = ~level,
-            type = "scatter",
-            mode = "lines",
-            text = ~month,
-            hovertemplate = paste('<b>Month</b>: %{text}',
-                                  '<br><b>Count</b>: %{y}',
-                                  '<extra></extra>')) %>% 
-  layout(xaxis = list(title = "Time",
-                      tickmode = "array",
-                      ticktext = list("January", "July", "January", "July", "January", "July", "January"),
-                      tickvals = list(1, 7, 13, 19, 25, 31, 37)),
-         yaxis = list(title = "Count",
-                      range = list(0, 7000)),
-         legend = list(title = list(text = "Immunity Level")),
-         title = "January Babies")
+# plot monthly count of infections
+
+plot_infections <- function(data){
+  
+  fig <- plot_ly() %>% 
+    add_trace(data = data,
+              x = ~time,
+              y = ~infected,
+              split = ~level,
+              color = ~level, 
+              colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"),
+              legendgroup = ~level,
+              type = "scatter",
+              mode = "lines",
+              text = ~month,
+              hovertemplate = paste('<b>Month</b>: %{text}',
+                                    '<br><b>Count</b>: %{y}',
+                                    '<extra></extra>'),
+              showlegend = TRUE) %>% 
+    layout(xaxis = list(title = "Time since birth",
+                        range = list(1, 48),
+                        tickmode = "array",
+                        tickvals = seq(1, 48, 3),
+                        ticktext = rep(c(month.abb[1], month.abb[4], month.abb[7], month.abb[10]), 4),
+                        tickangle = -45),
+           yaxis = list(title = "Count",
+                        range = list(0, 10000),
+                        tickmode = "linear",
+                        tick0 = 0,
+                        dtick = 2000, 
+                        tickformat = "digits"),
+           legend = list(title = list(text = "Immunity Level")),
+           annotations = list(x = 0.5, y = 1, text = unique(data$month_born), showarrow = F, xref='paper', yref='paper', yanchor = "bottom", xanchor = "center", align = "center"))
+  
+  return(fig)
+}
 
 # plot monthly count of disease
-births %>% 
-  plot_ly() %>% 
-  add_trace(x = ~time,
-            y = ~disease,
-            split = ~level,
-            colour = ~level,
-            type = "scatter",
-            mode = "lines",
-            text = ~month,
-            hovertemplate = paste('<b>Month</b>: %{text}',
-                                  '<br><b>Count</b>: %{y}',
-                                  '<extra></extra>')) %>% 
-  layout(xaxis = list(title = "Time",
-                      tickmode = "array",
-                      ticktext = list("January", "July", "January", "July", "January", "July", "January"),
-                      tickvals = list(1, 7, 13, 19, 25, 31, 37)),
-         yaxis = list(title = "Count",
-                      range = list(0, 7000)),
-         legend = list(title = list(text = "Immunity Level")),
-         title = "January Babies")
+
+plot_disease <- function(data){
+  
+  fig <- plot_ly() %>% 
+    add_trace(data = data,
+              x = ~time,
+              y = ~disease,
+              split = ~level,
+              color = ~level,
+              colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"),
+              legendgroup = ~level,
+              type = "scatter",
+              mode = "lines",
+              text = ~month,
+              hovertemplate = paste('<b>Month</b>: %{text}',
+                                    '<br><b>Count</b>: %{y}',
+                                    '<extra></extra>'),
+              showlegend = TRUE) %>% 
+    layout(xaxis = list(title = "Time since birth",
+                        range = list(1, 48),
+                        tickmode = "array",
+                        tickvals = seq(1, 48, 3),
+                        ticktext = rep(c(month.abb[1], month.abb[4], month.abb[7], month.abb[10]), 4),
+                        tickangle = -45),
+           yaxis = list(title = "Count",
+                        range = list(0, 7000),
+                        tickmode = "linear",
+                        tick0 = 0,
+                        dtick = 2000, 
+                        tickformat = "digits"),
+           legend = list(title = list(text = "Immunity Level")),
+           annotations = list(x = 0.5, y = 1, text = unique(data$month_born), showarrow = F, xref='paper', yref='paper', yanchor = "bottom", xanchor = "center", align = "center"))
+  
+  return(fig)
+}
 
 # plot of cumulative proportion of babies infected
-births %>% 
-  filter(level == "total") %>% 
-  mutate(cum_sum = cumsum(infected),
-         prop = (cum_sum/61942)*100) %>% 
-  ggplot() +
-  geom_line(aes(x = time, y = prop)) +
-  scale_x_continuous(breaks = seq(1, nrow(births), 6), labels = c(rep(c("January", "July"), rep), "January")) +
-  theme_bw() +
-  labs(x = "",
-       y = "Proportion Infected (%)")
 
-births %>% 
-  filter(level == "total") %>% 
-  mutate(cum_sum = cumsum(infected),
-         prop = (cum_sum/61942)*100) %>% 
-  plot_ly() %>% 
-  add_trace(x = ~time,
-            y = ~prop,
-            type = "scatter",
-            mode = "lines",
-            text = ~month,
-            hovertemplate = paste('<b>Month</b>: %{text}',
-                                  '<br><b>Proportion Infected</b>: %{y}',
-                                  '<extra></extra>')) %>% 
-  layout(xaxis = list(title = "Time",
-                      tickmode = "array",
-                      ticktext = list("January", "July", "January", "July", "January", "July", "January"),
-                      tickvals = list(1, 7, 13, 19, 25, 31, 37)),
-         yaxis = list(title = "Proportion Infected (%)",
-                      range = list(0, 100)))
+plot_cumpropinf <- function(data){
+  fig <- data %>%
+    filter(level == "total") %>%
+    group_by(month_born) %>%
+    mutate(cum_sum = cumsum(infected),
+           prop = (cum_sum/population)*100) %>%
+    plot_ly() %>%
+    add_trace(x = ~time,
+              y = ~prop,
+              split = ~month_born,
+              color = ~month_born,
+              type = "scatter",
+              mode = "lines",
+              text = ~month,
+              hovertemplate = paste('<b>Month</b>: %{text}',
+                                    '<br><b>Proportion Infected</b>: %{y}',
+                                    '<extra></extra>'),
+              showlegend = TRUE) %>%
+    layout(xaxis = list(title = "Months",
+                        tickangle = -45,
+                        tickmode = "array",
+                        ticktext = ~month,
+                        tickvals = ~time),
+           yaxis = list(title = "Proportion Infected (%)",
+                        range = list(0, 100),
+                        tickmode = "linear",
+                        tick0 = 0,
+                        dtick = 20))
+
+  return(fig)
+}
+
+# plot of cumulative proportion of babies with disease
+
+plot_cumpropdis <- function(data){
+  fig <- data %>%
+    filter(level == "total") %>%
+    group_by(month_born) %>%
+    mutate(cum_sum = cumsum(disease),
+           prop = (cum_sum/population)*100) %>%
+    plot_ly() %>%
+    add_trace(x = ~time,
+              y = ~prop,
+              split = ~month_born,
+              color = ~month_born,
+              type = "scatter",
+              mode = "lines",
+              text = ~month,
+              hovertemplate = paste('<b>Month</b>: %{text}',
+                                    '<br><b>Proportion with disease</b>: %{y}',
+                                    '<extra></extra>'),
+              showlegend = TRUE) %>%
+    layout(xaxis = list(title = "Months",
+                        tickangle = -45,
+                        tickmode = "array",
+                        ticktext = ~month,
+                        tickvals = ~time),
+           yaxis = list(title = "Proportion with disease (%)",
+                        range = list(0, 35),
+                        tickmode = "linear",
+                        tick0 = 0,
+                        dtick = 5))
+
+  return(fig)
+}
+
+# plot age at infection and disease
+
+plot_age <- function(data, types = c("infected", "disease")){
+  fig <- data %>% 
+    filter(type == types) %>%
+    plot_ly() %>%
+    add_trace(x = ~age,
+              y = ~count,
+              split = ~level,
+              color = ~level,
+              colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"),
+              type = "bar",
+              legendgroup = ~level,
+              showlegend = TRUE) %>% 
+    layout(yaxis = list(title = "Count",
+                        range = list(0, ifelse(types == "infected", 30000, 20000)),
+                        tickmode = "linear",
+                        tick0 = 0,
+                        dtick = 5000,
+                        tickformat = "digits"),
+           xaxis = list(title = "Age Group"),
+           annotations = list(x = 0.5, y = 1, text = unique(data$month_born), showarrow = F, xref='paper', yref='paper', yanchor = "bottom", xanchor = "center", align = "center"))
+  
+  return(fig)
+}
