@@ -137,7 +137,7 @@ plot_infections <- function(data){
                         ticktext = rep(c(month.abb[1], month.abb[4], month.abb[7], month.abb[10]), 4),
                         tickangle = -45),
            yaxis = list(title = "Count",
-                        range = list(0, 10000),
+                        range = list(0, 12000),
                         tickmode = "linear",
                         tick0 = 0,
                         dtick = 2000, 
@@ -174,7 +174,7 @@ plot_disease <- function(data){
                         ticktext = rep(c(month.abb[1], month.abb[4], month.abb[7], month.abb[10]), 4),
                         tickangle = -45),
            yaxis = list(title = "Count",
-                        range = list(0, 7000),
+                        range = list(0, 10000),
                         tickmode = "linear",
                         tick0 = 0,
                         dtick = 2000, 
@@ -185,7 +185,7 @@ plot_disease <- function(data){
   return(fig)
 }
 
-# plot of cumulative proportion of babies infected
+# plot of cumulative proportion of babies infected by calendar month
 
 plot_cumpropinf <- function(data){
   fig <- data %>%
@@ -198,6 +198,7 @@ plot_cumpropinf <- function(data){
               y = ~prop,
               split = ~month_born,
               color = ~month_born,
+              legendgroup = ~month_born,
               type = "scatter",
               mode = "lines",
               text = ~month,
@@ -205,11 +206,11 @@ plot_cumpropinf <- function(data){
                                     '<br><b>Proportion Infected</b>: %{y}',
                                     '<extra></extra>'),
               showlegend = TRUE) %>%
-    layout(xaxis = list(title = "Months",
+    layout(xaxis = list(title = "Calendar months",
                         tickangle = -45,
                         tickmode = "array",
-                        ticktext = ~month,
-                        tickvals = ~time),
+                        ticktext = rep(c("Jan", "Mar", "Jul", "Oct"), 4),
+                        tickvals = seq(1, 48, 3)),
            yaxis = list(title = "Proportion Infected (%)",
                         range = list(0, 100),
                         tickmode = "linear",
@@ -219,7 +220,7 @@ plot_cumpropinf <- function(data){
   return(fig)
 }
 
-# plot of cumulative proportion of babies with disease
+# plot of cumulative proportion of babies with disease by calendar month
 
 plot_cumpropdis <- function(data){
   fig <- data %>%
@@ -232,6 +233,7 @@ plot_cumpropdis <- function(data){
               y = ~prop,
               split = ~month_born,
               color = ~month_born,
+              legendgroup = ~month_born,
               type = "scatter",
               mode = "lines",
               text = ~month,
@@ -239,13 +241,13 @@ plot_cumpropdis <- function(data){
                                     '<br><b>Proportion with disease</b>: %{y}',
                                     '<extra></extra>'),
               showlegend = TRUE) %>%
-    layout(xaxis = list(title = "Months",
+    layout(xaxis = list(title = "Calendar months",
                         tickangle = -45,
                         tickmode = "array",
-                        ticktext = ~month,
-                        tickvals = ~time),
+                        ticktext = rep(c("Jan", "Mar", "Jul", "Oct"), 4),
+                        tickvals = seq(1, 48, 3)),
            yaxis = list(title = "Proportion with disease (%)",
-                        range = list(0, 35),
+                        range = list(0, 50),
                         tickmode = "linear",
                         tick0 = 0,
                         dtick = 5))
@@ -268,7 +270,7 @@ plot_age <- function(data, types = c("infected", "disease")){
               legendgroup = ~level,
               showlegend = TRUE) %>% 
     layout(yaxis = list(title = "Count",
-                        range = list(0, ifelse(types == "infected", 30000, 20000)),
+                        range = list(0, ifelse(types == "infected", 31000, 30000)),
                         tickmode = "linear",
                         tick0 = 0,
                         dtick = 5000,
@@ -277,4 +279,74 @@ plot_age <- function(data, types = c("infected", "disease")){
            annotations = list(x = 0.5, y = 1, text = unique(data$month_born), showarrow = F, xref='paper', yref='paper', yanchor = "bottom", xanchor = "center", align = "center"))
   
   return(fig)
+}
+
+# plot cumulative proportion of infection/disease by month of age
+
+plot_cumprop <- function(data, type = c("infection", "disease")){
+  
+  if(type == "infection"){
+    
+    fig <- data %>%
+      filter(level == "total") %>%
+      group_by(month_born) %>%
+      mutate(cum_sum = cumsum(infected),
+             prop = (cum_sum/population)*100) %>%
+      plot_ly() %>%
+      add_trace(x = ~time,
+                y = ~prop,
+                split = ~month_born,
+                color = ~month_born,
+                legendgroup = ~month_born,
+                type = "scatter",
+                mode = "lines",
+                hovertemplate = paste('<b>Age (months)</b>: %{x}',
+                                      '<br><b>Proportion Infected</b>: %{y}',
+                                      '<extra></extra>'),
+                showlegend = TRUE) %>%
+      layout(xaxis = list(title = "Month of age",
+                          range = list(0, 36),
+                          tickmode = "linear",
+                          tick0 = 0,
+                          dtick = 3),
+             yaxis = list(title = "Proportion Infected (%)",
+                          range = list(0, 100),
+                          tickmode = "linear",
+                          tick0 = 0,
+                          dtick = 20))
+    
+    return(fig)
+  } else {
+    
+    fig <- data %>%
+      filter(level == "total") %>%
+      group_by(month_born) %>%
+      mutate(cum_sum = cumsum(disease),
+             prop = (cum_sum/population)*100) %>%
+      plot_ly() %>%
+      add_trace(x = ~time,
+                y = ~prop,
+                split = ~month_born,
+                color = ~month_born,
+                legendgroup = ~month_born,
+                type = "scatter",
+                mode = "lines",
+                hovertemplate = paste('<b>Age (months)</b>: %{x}',
+                                      '<br><b>Proportion with disease</b>: %{y}',
+                                      '<extra></extra>'),
+                showlegend = TRUE) %>%
+      layout(xaxis = list(title = "Month of age",
+                          range = list(0, 36),
+                          tickmode = "linear",
+                          tick0 = 0,
+                          dtick = 3),
+             yaxis = list(title = "Proportion with disease (%)",
+                          range = list(0, 50),
+                          tickmode = "linear",
+                          tick0 = 0,
+                          dtick = 5))
+    
+    return(fig)
+    
+  }
 }
