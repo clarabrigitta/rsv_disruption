@@ -50,7 +50,7 @@ for (row in 1:nrow(women)) {
 }
 
 # save model output
-saveRDS(women, file = "./output/data/women.rds")
+ifelse(disruption == FALSE, saveRDS(women.long, file = "./output/data/women/women.rds"), saveRDS(women.long, file = "./output/data/women/women_disrupt.rds"))
 
 # reshaping data to become long for plotting
 women.long <- women %>% 
@@ -61,4 +61,77 @@ women.long <- women %>%
          proportion = count/sum)
 
 # save long model output
-saveRDS(women.long, file = "./output/data/women_long.rds")
+ifelse(disruption == FALSE, saveRDS(women.long, file = "./output/data/women/women_long.rds"), saveRDS(women.long, file = "./output/data/women/women_long_disrupt.rds"))
+
+# determine monthly average infection status proportions from 60th year onwards for immunity classification of mothers
+women.long <- readRDS("./output/data/women/women_long.rds")
+women_long_disrupt <- readRDS("./output/data/women/women_long_disrupt.rds")
+
+women.prop <- women.long %>% 
+  filter(time > (12*60)) %>% 
+  group_by(month, infection) %>% 
+  summarise(across(c("count", "proportion"), mean, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  mutate(month = factor(month, levels = month.abb)) %>% 
+  filter(infection != "susceptible_naive") %>% 
+  mutate(level = as.factor(case_when(infection %in% str_c(rep("I", 6), 1:6) ~ 1,
+                                     infection %in% str_c(rep("I", 9), 7:15) ~ 2,
+                                     infection %in% str_c(rep("I", 9), 16:24) ~ 3,
+                                     infection == "susceptible_reinf" ~ 4))) %>% 
+  group_by(month, level) %>% 
+  summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
+  ungroup()
+
+women.prop <- bind_rows(women.long %>% 
+                          filter(time > (12*60)) %>% 
+                          group_by(month, infection) %>% 
+                          summarise(across(c("count", "proportion"), mean, na.rm = TRUE)) %>% 
+                          ungroup() %>% 
+                          mutate(month = factor(month, levels = month.abb)) %>% 
+                          filter(infection != "susceptible_naive") %>% 
+                          mutate(level = as.factor(case_when(infection %in% str_c(rep("I", 6), 1:6) ~ 1,
+                                                             infection %in% str_c(rep("I", 9), 7:15) ~ 2,
+                                                             infection %in% str_c(rep("I", 9), 16:24) ~ 3,
+                                                             infection == "susceptible_reinf" ~ 4))) %>% 
+                          group_by(month, level) %>% 
+                          summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
+                          ungroup() %>% 
+                          mutate(disruption = 0),
+                        women_long_disrupt %>% 
+                          filter(time > 12*65 & time <= 12*66) %>% 
+                          mutate(month = factor(month, levels = month.abb)) %>% 
+                          filter(infection != "susceptible_naive") %>% 
+                          mutate(level = as.factor(case_when(infection %in% str_c(rep("I", 6), 1:6) ~ 1,
+                                                             infection %in% str_c(rep("I", 9), 7:15) ~ 2,
+                                                             infection %in% str_c(rep("I", 9), 16:24) ~ 3,
+                                                             infection == "susceptible_reinf" ~ 4))) %>% 
+                          group_by(month, level) %>% 
+                          summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
+                          ungroup() %>% 
+                          mutate(disruption = 1),
+                        women_long_disrupt %>% 
+                          filter(time > 12*66 & time <= 12*67) %>% 
+                          mutate(month = factor(month, levels = month.abb)) %>% 
+                          filter(infection != "susceptible_naive") %>% 
+                          mutate(level = as.factor(case_when(infection %in% str_c(rep("I", 6), 1:6) ~ 1,
+                                                             infection %in% str_c(rep("I", 9), 7:15) ~ 2,
+                                                             infection %in% str_c(rep("I", 9), 16:24) ~ 3,
+                                                             infection == "susceptible_reinf" ~ 4))) %>% 
+                          group_by(month, level) %>% 
+                          summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
+                          ungroup() %>% 
+                          mutate(disruption = 2),
+                        women_long_disrupt %>% 
+                          filter(time > 12*67 & time <= 12*68) %>% 
+                          mutate(month = factor(month, levels = month.abb)) %>% 
+                          filter(infection != "susceptible_naive") %>% 
+                          mutate(level = as.factor(case_when(infection %in% str_c(rep("I", 6), 1:6) ~ 1,
+                                                             infection %in% str_c(rep("I", 9), 7:15) ~ 2,
+                                                             infection %in% str_c(rep("I", 9), 16:24) ~ 3,
+                                                             infection == "susceptible_reinf" ~ 4))) %>% 
+                          group_by(month, level) %>% 
+                          summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
+                          ungroup() %>% 
+                          mutate(disruption = 3))
+
+saveRDS(women.prop, file = "./output/data/women_prop.rds")
