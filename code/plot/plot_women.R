@@ -9,6 +9,7 @@ library(stringr)
 # load data
 women <- readRDS("./output/data/women.rds")
 women.long <- readRDS("./output/data/women_long.rds")
+women_long_disrupt <- readRDS("./output/data/women_long_disrupt.rds")
 
 # plot infection status proportions
 women.long %>% 
@@ -99,25 +100,10 @@ women %>%
   labs(x = "Time",
        y = "Cumulative Incidence")
 
-# determine monthly average infection status proportions from 60th year onwards for immunity classification of mothers
-women.prop <- women.long %>% 
-  filter(time > (12*60)) %>% 
-  group_by(month, infection) %>% 
-  summarise(across(c("count", "proportion"), mean, na.rm = TRUE)) %>% 
-  ungroup() %>% 
-  mutate(month = factor(month, levels = month.abb)) %>% 
-  filter(infection != "susceptible_naive") %>% 
-  mutate(level = as.factor(case_when(infection %in% str_c(rep("I", 6), 1:6) ~ 1,
-                                     infection %in% str_c(rep("I", 9), 7:15) ~ 2,
-                                     infection %in% str_c(rep("I", 9), 16:24) ~ 3,
-                                     infection == "susceptible_reinf" ~ 4))) %>% 
-  group_by(month, level) %>% 
-  summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
-  ungroup()
-
-saveRDS(women.prop, file = "./output/data/women_prop.rds")
+# plot infection history/ immunity level proportions
 
 women.prop %>%
+  filter(disruption == 3) %>% 
   ggplot() +
   # geom_bar(aes(x = month, y = proportion, fill = infection), position = "fill", stat = "identity") +
   # scale_fill_manual(values = c("lightgrey", "darkgrey", viridis(n_interest))) +
