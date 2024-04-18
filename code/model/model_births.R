@@ -14,7 +14,9 @@ data <- read_excel("./data/births_pregnancies.xlsx", sheet = "All") %>%
   mutate(year_month = paste(year, month, sep = "_"),
          date = as.Date(as.yearmon(`year_month`, "%Y_%b")),) %>%
   select(year, month, date, births) %>% 
-  filter(!is.na(births))
+  filter(!is.na(births)) %>% 
+  slice(1:(12*10)) %>% 
+  mutate(time = 1:nrow(.))
 
 # -------------------------------------------------------------------------
 
