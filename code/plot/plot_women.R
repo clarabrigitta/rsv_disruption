@@ -7,9 +7,9 @@ library(viridisLite)
 library(stringr)
 
 # load data
-women <- readRDS("./output/data/women.rds")
-women.long <- readRDS("./output/data/women_long.rds")
-women_long_disrupt <- readRDS("./output/data/women_long_disrupt.rds")
+women <- readRDS("./output/data/women/women.rds")
+women.long <- readRDS("./output/data/women/women_long.rds")
+women_long_disrupt <- readRDS("./output/data/women/women_long_disrupt.rds")
 
 # plot infection status proportions
 women.long %>% 
