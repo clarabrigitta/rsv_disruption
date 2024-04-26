@@ -1,0 +1,400 @@
+---
+title: "Model Update"
+output: html_document
+date: "2024-04-25"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(plotly)
+library(knitr)
+library(viridisLite)
+library(readxl)
+library(zoo)
+library(stringr)
+
+```
+
+```{r data, include=FALSE}
+# load main data frame to be used
+output <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/continuous_model.rds")
+
+# load other datasets
+# load birth data
+birth_data <- read_excel("/Users/lsh2301561/Desktop/rsv_disruption/data/births_pregnancies.xlsx", sheet = "All") %>%
+  mutate(year_month = paste(year, month, sep = "_"),
+         date = as.Date(as.yearmon(`year_month`, "%Y_%b")),) %>%
+  select(year, month, date, births) %>% 
+  filter(!is.na(births)) %>% 
+  slice(1:(12*10)) %>% 
+  mutate(time = 1:nrow(.))
+
+# create reference table for rates to join
+rate_reference <- readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_long_disrupt.rds") %>% 
+  select(time, month, rate) %>% 
+  distinct() %>% 
+  filter(time <= 12*75, time > 12*60) %>% 
+  mutate(month = factor(month, levels = month.abb),
+         time = 1:nrow(.)) %>% 
+  cross_join(data.frame(level = 1:4)) %>% 
+  mutate(level = factor(level, levels = 1:4))
+
+# create 10 years of infection history/immunity split
+immunity_split <- readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_long_disrupt.rds") %>% 
+  filter(time <= 12*70, time > 12*60) %>% 
+  mutate(month = factor(month, levels = month.abb)) %>% 
+  filter(infection != "susceptible_naive") %>% 
+  mutate(level = as.factor(case_when(infection %in% str_c(rep("I", 6), 1:6) ~ 1,
+                                     infection %in% str_c(rep("I", 9), 7:15) ~ 2,
+                                     infection %in% str_c(rep("I", 9), 16:24) ~ 3,
+                                     infection == "susceptible_reinf" ~ 4))) %>% 
+  group_by(time, rate, month, level) %>% 
+  summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  mutate(time = rep(1:(12*10), each = 4)) %>% 
+  # combining with birth data
+  select(-count) %>% 
+  left_join(birth_data %>% select(month, births, time)) %>% 
+  mutate(susceptible = proportion * births)
+
+```
+
+# Immunity
+
+**infection history in mothers**
+```{r women_prop, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+# plot infection history proportions
+readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_long_disrupt.rds") %>%
+  filter(time <= 12*70, time > 12*60) %>%
+  ggplot() +
+  geom_bar(aes(x = time, y = proportion, fill = infection), position = "fill", stat = "identity") +
+  scale_fill_manual(values = c("lightgrey", "darkgrey", viridis(24))) +
+  scale_x_continuous(breaks = seq(1, 901, 6), labels = c(rep(c("January", "July"), 75), "January")) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Time",
+       y = "Proportion",
+       fill = "Infection Status")
+```
+
+**immunity split in babies**
+```{r immunity_split, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+# plot immunity split
+immunity_split %>%
+  mutate(level = factor(level, levels = c("1", "2", "3", "4", "total"), labels = c("1 (high)", "2", "3", "4 (low)", "total"))) %>% 
+  ggplot() +
+  geom_bar(aes(x = time, y = proportion, fill = level), position = "fill", stat = "identity") +
+  geom_vline(xintercept = c(12*5+3, 12*6+3), linetype = "dashed", color = "red") +
+  scale_fill_manual(values = viridis(4)) +
+  scale_x_continuous(breaks = seq(1, 120, 3), 
+                     labels = rep(c("Jan", "Apr", "Jul", "Oct"), 10)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Calendar Month",
+       y = "Proportion",
+       fill = "Immunity Level")
+```
+
+# Infection
+
+**monthly first infection**
+```{r inf, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+output %>% 
+  group_by(time_calendar, month, rate) %>% 
+  summarise(across(c("susceptible", "infected", "disease"), sum, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  plot_ly() %>% 
+  add_trace(
+    x = ~time_calendar,
+    y = ~infected,
+    type = "scatter",
+    mode = "line",
+    text = ~month
+  ) %>% 
+  layout(xaxis = list(title = "Calendar month",
+                      range = list(37, 120),
+                      tickvals = seq(37, 120, 3),
+                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
+                      tickmode = "array",
+                      tickangle = -45),
+         yaxis = list(title = "Infection Count",
+                      range = list(0, 320000),
+                      tickmode = "linear",
+                      tick0 = 0,
+                      dtick = 20000, 
+                      tickformat = "digits"),
+         shapes = list(list(type = "line",
+                            y0 = 0,
+                            y1 = 1,
+                            yref = "paper",
+                            x0 = 12*5+3,
+                            x1 = 12*5+3,
+                            line = list(color = "red", dash="dot")),
+                       list(type = "line",
+                            y0 = 0,
+                            y1 = 1,
+                            yref = "paper",
+                            x0 = 12*6+3,
+                            x1 = 12*6+3,
+                            line = list(color = "red", dash="dot"))))
+```
+
+**monthly first infection by immunity level (sub-analysis of above)**
+```{r inf_immunity, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+# plot infection epidemic curve over time by immunity level
+output %>% 
+  group_by(time_calendar, month, rate, level) %>% 
+  summarise(across(c("susceptible", "infected", "disease"), sum, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  plot_ly() %>% 
+  add_trace(
+    x = ~time_calendar,
+    y = ~infected,
+    type = "scatter",
+    mode = "line",
+    split = ~level,
+    color = ~level, 
+    colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"),
+    text = ~month,
+    hovertemplate = paste('<b>Month</b>: %{text}',
+                          '<br><b>Count</b>: %{y}',
+                          '<extra></extra>')
+  ) %>% 
+  layout(xaxis = list(title = "Calendar month",
+                      range = list(37, 120),
+                      tickvals = seq(37, 120, 3),
+                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
+                      tickmode = "array",
+                      tickangle = -45),
+         yaxis = list(title = "Infection Count",
+                      range = list(0, 180000),
+                      tickmode = "linear",
+                      tick0 = 0,
+                      dtick = 10000, 
+                      tickformat = "digits"),
+         legend = list(title = list(text = "Immunity Level")),
+         shapes = list(list(type = "line",
+                            y0 = 0,
+                            y1 = 1,
+                            yref = "paper",
+                            x0 = 12*5+3,
+                            x1 = 12*5+3,
+                            line = list(color = "red", dash="dot")),
+                       list(type = "line",
+                            y0 = 0,
+                            y1 = 1,
+                            yref = "paper",
+                            x0 = 12*6+3,
+                            x1 = 12*6+3,
+                            line = list(color = "red", dash="dot"))))
+```
+
+**proportion of age groups contributing to monthly cases of infection**
+```{r inf_age, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+# plot age distribution of infection over time
+output %>% 
+  select(-time) %>% 
+  pivot_longer(cols = c("<6", "6-12", "12-24", "24-36"), names_to = "age", values_to = "value") %>%
+  mutate(age = factor(age, levels = c("<6", "6-12", "12-24", "24-36"))) %>% 
+  filter(value == 1) %>% 
+  select(-value) %>% 
+  group_by(time_calendar, month, rate, age) %>% 
+  summarise(infected = sum(infected),
+            disease = sum(disease)) %>% 
+  ungroup() %>% 
+  pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "count") %>% 
+  left_join(output %>%
+            group_by(time_calendar, month, rate) %>%
+            summarise(across(c("infected", "disease"), sum, na.rm = TRUE)) %>%
+            ungroup() %>%
+            pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "sum")) %>%
+  mutate(proportion = (count/sum)*100) %>% 
+  filter(type == "infected") %>% 
+  plot_ly() %>%
+  add_trace(x = ~time_calendar,
+            y = ~proportion,
+            split = ~age,
+            color = ~age, 
+            colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"),
+            legendgroup = ~age,
+            type = "bar",
+            showlegend = TRUE) %>% 
+  layout(xaxis = list(title = "Calendar Month",
+                      range = list(37, 120),
+                      tickvals = seq(37, 120, 3),
+                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
+                      tickmode = "array",
+                      tickangle = -45),
+         yaxis = list(title = "Proportion"),
+         legend = list(title = list(text = "Age Group")),
+         barmode = "stack",
+         shapes = list(list(type = "line",
+                            y0 = 0,
+                            y1 = 1,
+                            yref = "paper",
+                            x0 = 12*5+3,
+                            x1 = 12*5+3,
+                            line = list(color = "red", dash="dot")),
+                       list(type = "line",
+                            y0 = 0,
+                            y1 = 1,
+                            yref = "paper",
+                            x0 = 12*6+3,
+                            x1 = 12*6+3,
+                            line = list(color = "red", dash="dot"))))
+```
+
+# Disease
+
+**monthly first occurrence of disease**
+```{r dis, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+# plot disease epidemic curve over time
+output %>%
+  group_by(time_calendar, month, rate) %>%
+  summarise(across(c("susceptible", "infected", "disease"), sum, na.rm = TRUE)) %>%
+  ungroup() %>%
+  plot_ly() %>%
+  add_trace(
+    x = ~time_calendar,
+    y = ~disease,
+    type = "scatter",
+    mode = "line",
+    text = ~month
+  ) %>%
+  layout(xaxis = list(title = "Calendar month",
+                      range = list(37, 120),
+                      tickvals = seq(37, 120, 3),
+                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
+                      tickmode = "array",
+                      tickangle = -45),
+         yaxis = list(title = "Infection Count",
+                      range = list(0, 100000),
+                      tickmode = "linear",
+                      tick0 = 0,
+                      dtick = 5000,
+                      tickformat = "digits"),
+         shapes = list(list(type = "line",
+                            y0 = 0,
+                            y1 = 1,
+                            yref = "paper",
+                            x0 = 12*5+3,
+                            x1 = 12*5+3,
+                            line = list(color = "red", dash="dot")),
+                       list(type = "line",
+                            y0 = 0,
+                            y1 = 1,
+                            yref = "paper",
+                            x0 = 12*6+3,
+                            x1 = 12*6+3,
+                            line = list(color = "red", dash="dot"))))
+```
+
+**monthly first occurrence of disease by immunity level (sub-analysis of above)**
+```{r dis_immunity, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+# plot disease epidemic curve over time by immunity level
+output %>%
+  group_by(time_calendar, month, rate, level) %>%
+  summarise(across(c("susceptible", "infected", "disease"), sum, na.rm = TRUE)) %>%
+  ungroup() %>%
+  plot_ly() %>%
+  add_trace(
+    x = ~time_calendar,
+    y = ~disease,
+    type = "scatter",
+    mode = "line",
+    split = ~level,
+    color = ~level,
+    colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"),
+    text = ~month,
+    hovertemplate = paste('<b>Month</b>: %{text}',
+                          '<br><b>Count</b>: %{y}',
+                          '<extra></extra>')
+  ) %>%
+  layout(xaxis = list(title = "Calendar month",
+                      range = list(37, 120),
+                      tickvals = seq(37, 120, 3),
+                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
+                      tickmode = "array",
+                      tickangle = -45),
+         yaxis = list(title = "Infection Count",
+                      range = list(0, 80000),
+                      tickmode = "linear",
+                      tick0 = 0,
+                      dtick = 5000,
+                      tickformat = "digits"),
+         legend = list(title = list(text = "Immunity Level")),
+         shapes = list(list(type = "line",
+                            y0 = 0,
+                            y1 = 1,
+                            yref = "paper",
+                            x0 = 12*5+3,
+                            x1 = 12*5+3,
+                            line = list(color = "red", dash="dot")),
+                       list(type = "line",
+                            y0 = 0,
+                            y1 = 1,
+                            yref = "paper",
+                            x0 = 12*6+3,
+                            x1 = 12*6+3,
+                            line = list(color = "red", dash="dot"))))
+```
+
+**proportion of age groups contributing to monthly cases of disease**
+```{r dis_age, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+# plot age distribution of disease over time
+output %>%
+  select(-time) %>%
+  pivot_longer(cols = c("<6", "6-12", "12-24", "24-36"), names_to = "age", values_to = "value") %>%
+  mutate(age = factor(age, levels = c("<6", "6-12", "12-24", "24-36"))) %>%
+  filter(value == 1) %>%
+  select(-value) %>%
+  group_by(time_calendar, month, rate, age) %>%
+  summarise(infected = sum(infected),
+            disease = sum(disease)) %>%
+  ungroup() %>%
+  pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "count") %>%
+  left_join(output %>%
+              group_by(time_calendar, month, rate) %>%
+              summarise(across(c("infected", "disease"), sum, na.rm = TRUE)) %>%
+              ungroup() %>%
+              pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "sum")) %>%
+  mutate(proportion = (count/sum)*100) %>%
+  filter(type == "disease") %>%
+  plot_ly() %>%
+  add_trace(x = ~time_calendar,
+            y = ~proportion,
+            split = ~age,
+            color = ~age,
+            colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"),
+            legendgroup = ~age,
+            type = "bar",
+            showlegend = TRUE) %>%
+  layout(xaxis = list(title = "Calendar Month",
+                      range = list(37, 120),
+                      tickvals = seq(37, 120, 3),
+                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
+                      tickmode = "array",
+                      tickangle = -45),
+         yaxis = list(title = "Proportion"),
+         legend = list(title = list(text = "Age Group")),
+         barmode = "stack",
+         shapes = list(list(type = "line",
+                            y0 = 0,
+                            y1 = 1,
+                            yref = "paper",
+                            x0 = 12*5+3,
+                            x1 = 12*5+3,
+                            line = list(color = "red", dash="dot")),
+                       list(type = "line",
+                            y0 = 0,
+                            y1 = 1,
+                            yref = "paper",
+                            x0 = 12*6+3,
+                            x1 = 12*6+3,
+                            line = list(color = "red", dash="dot"))))
+
+```
