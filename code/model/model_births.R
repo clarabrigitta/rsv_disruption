@@ -10,7 +10,7 @@ library(plotly)
 # -------------------------------------------------------------------------
 
 # load data and calculate over 2yrs, under 2yrs, pregnancy trimester counts and proportions
-data <- read_excel("./data/births_pregnancies.xlsx", sheet = "All") %>%
+birth_data <- read_excel("./data/births_pregnancies.xlsx", sheet = "All") %>%
   mutate(year_month = paste(year, month, sep = "_"),
          date = as.Date(as.yearmon(`year_month`, "%Y_%b")),) %>%
   select(year, month, date, births) %>% 
