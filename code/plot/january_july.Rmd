@@ -16,9 +16,9 @@ library(plotly)
 ```
 
 ```{r data, include = FALSE}
-births_january <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_january.rds")
-births_july <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_july.rds")
-women_prop <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/women_prop.rds")
+births_january <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/monthly/births_Jan.rds")
+births_july <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/monthly/births_Jul.rds")
+women_prop <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_prop.rds")
 ```
 ## Monthly Infections
 
@@ -27,7 +27,7 @@ Monthly infections for one month of births.
 ```{r inf, echo = FALSE, message = FALSE, fig.width = 12}
 fig1 <- births_january %>% 
   group_by(time, month) %>% 
-  summarise(susceptible = sum(susceptible_sub),
+  summarise(susceptible = sum(susceptible),
             infected = sum(infected)) %>% 
   ungroup() %>% 
   plot_ly() %>% 
@@ -55,7 +55,7 @@ fig1 <- births_january %>%
 
 fig2 <- births_july %>% 
   group_by(time, month) %>% 
-  summarise(susceptible = sum(susceptible_sub),
+  summarise(susceptible = sum(susceptible),
             infected = sum(infected)) %>% 
   ungroup() %>% 
   plot_ly() %>% 
@@ -92,7 +92,7 @@ Cumulative proportion of babies infected over a period of 3 years for one month 
 ```{r cum_inf, echo = FALSE,  message = FALSE, fig.width = 12}
 fig1 <- births_january %>% 
   group_by(time, month) %>% 
-  summarise(susceptible = sum(susceptible_sub),
+  summarise(susceptible = sum(susceptible),
             infected = sum(infected)) %>% 
   ungroup() %>% 
   mutate(cum_sum = cumsum(infected),
@@ -122,7 +122,7 @@ fig1 <- births_january %>%
 
 fig2 <- births_july %>% 
   group_by(time, month) %>% 
-  summarise(susceptible = sum(susceptible_sub),
+  summarise(susceptible = sum(susceptible),
             infected = sum(infected)) %>% 
   ungroup() %>% 
   mutate(cum_sum = cumsum(infected),
