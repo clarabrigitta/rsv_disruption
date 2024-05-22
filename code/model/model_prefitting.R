@@ -16,6 +16,10 @@ n_burn <- 65 # burn-in period before disruption
 
 # -------------------------------------------------------------------------
 
+# MODELING MOTHERS
+
+# pick one of the options below out of 3
+
 # 1. baseline scenario: rate is arbitrary
 
 # setting up data frame with months and rates
@@ -57,7 +61,7 @@ women <- women %>% mutate(month = rep(month.abb, rep),
                                             month == month.abb[9] ~ 0.010,
                                             month == month.abb[10] ~ 0.020,
                                             month %in% month.abb[11:12] ~ 0.045))*rate_scale) %>% 
-  left_join(mobility %>% select(time, value)) %>% 
+  left_join(readRDS("./output/data/prefitting/mobility.rds") %>% select(time, value)) %>% 
   mutate(value = ifelse(is.na(value), 1, value),
          rate = rate * value) %>% 
   select(-value)
@@ -78,7 +82,7 @@ women <- women %>% mutate(month = rep(month.abb, rep),
                                             month == month.abb[9] ~ 0.010,
                                             month == month.abb[10] ~ 0.020,
                                             month %in% month.abb[11:12] ~ 0.045))*rate_scale) %>% 
-  left_join(rate_scot %>% select(rate_scot, time), by = join_by(`time`)) %>% 
+  left_join(readRDS("./output/data/prefitting/rate_scot.rds") %>% select(rate_scot, time), by = join_by(`time`)) %>% 
   mutate(rate = ifelse(is.na(rate_scot), rate, rate_scot)) %>% 
   select(-rate_scot)
 
@@ -112,6 +116,9 @@ women.long <- women %>%
 saveRDS(women.long, file = "./output/data/women/women_rate_prefitting.rds")
 
 # -------------------------------------------------------------------------
+
+# MODELING BABIES
+
 # data preparation
 
 # load birth data
@@ -151,7 +158,6 @@ immunity_split <- readRDS("./output/data/women/women_rate_prefitting.rds") %>%
   left_join(birth_data %>% select(month, births, time)) %>% 
   mutate(susceptible = proportion * births)
 
-
 # -------------------------------------------------------------------------
 # model continuous monthly births, each for 3 months
 
@@ -168,7 +174,8 @@ for(n in 1:nrow(model_continuous_births)){
     # distinguish between calendar months and months since birth
     rename(time_calendar = time) %>% 
     mutate(time_birth = rep(1:36, each = 4)) %>% 
-    # set probability of infection/disease based on immunity level
+    # set probability of infection/disease based on immunity level - choose one of the options.
+    # option 1
     mutate(prob_inf = case_when(level == 1 ~ 0,
                                 level == 2 ~ 0.5,
                                 level == 3 ~ 0.5,
@@ -179,6 +186,7 @@ for(n in 1:nrow(model_continuous_births)){
                                 level == 4 ~ 1)) %>%
   # -------------------------------------------------------------------------
   # explore probability of infection and disease
+  # option 2
   # mutate(prob_inf = case_when(level == 1 ~ 0,
   #                             level == 2 ~ 0.5,
   #                             level == 3 ~ 0.75,
@@ -187,6 +195,7 @@ for(n in 1:nrow(model_continuous_births)){
   #                             level == 2 ~ 0.5,
   #                             level == 3 ~ 0.75,
   #                             level == 4 ~ 1)) %>% 
+  # option 3
   # mutate(prob_inf = case_when(level == 1 ~ 0.25,
   #                             level == 2 ~ 0.5,
   #                             level == 3 ~ 0.75,
@@ -195,6 +204,8 @@ for(n in 1:nrow(model_continuous_births)){
   #                             level == 2 ~ 0.25,
   #                             level == 3 ~ 0.50,
   #                             level == 4 ~ 0.75)) %>%
+  # explore changing the shape of waning and aging - choose one of the options.
+    # option 1
     # introduce waning immunity to probability of infection
     mutate(waning = case_when(time_birth <= 6 ~ 1,
                               time_birth > 6 & time_birth <= 12 ~ 0.5,
@@ -208,12 +219,14 @@ for(n in 1:nrow(model_continuous_births)){
                              time_birth > 24 ~ 0),
            prob_dis = prob_dis * aging) %>%
 # -------------------------------------------------------------------------
+    # # option 2
     # # introduce waning immunity to probability of infection
     # mutate(waning = 1-time_birth/36,
     #      prob_inf = 1 - ((1 - prob_inf) * waning)) %>%
     # # introduce aging to probability of disease
     # mutate(aging = 1-time_birth/36,
     #        prob_dis = prob_dis * aging) %>%
+    # # option 3
     # # introduce waning immunity to probability of infection
     # mutate(waning = 1*0.9^time_birth,
     #      prob_inf = 1 - ((1 - prob_inf) * waning)) %>%
@@ -251,7 +264,12 @@ for(n in 1:nrow(model_continuous_births)){
 
 output <- model_continuous_births %>% unnest()
 
-saveRDS(output, file = "./output/data/prefitted_model_mobility.rds")
+saveRDS(output, file = "./output/data/prefitted_model.rds") # add suffix (_...) as necessary (for rate: scot, mobility; for shapes: linear, exponential)
+
+
+# -------------------------------------------------------------------------
+
+# TEST
 
 # plot rate 
 rate_reference %>% 
@@ -271,56 +289,3 @@ plot_ly() %>%
                       tickmode = "array",
                       tickangle = -45),
          yaxis = list(title = "Rate of exposure"))
-
-# plot waning immunity
-curve(1-x/36, from = 0, to = 36, xlab = "Months since birth", ylab = "Waning immunity", main = "Waning immunity over time")
-curve(1*0.9^x, from = 0, to = 36, xlab = "Months since birth", ylab = "Waning immunity", main = "Waning immunity over time")
-
-waning <- as.data.frame(matrix(NA, 12*3, 3))
-colnames(waning) <- c("time", "month", "waning")
-waning <- waning %>%
-  mutate(time = 1:36,
-         month = rep(month.abb, 3),
-         waning = case_when(time <= 6 ~ 1,
-                            time > 6 & time <= 12 ~ 0.5,
-                            time > 12 & time <= 24 ~ 0.2,
-                            time > 24 ~ 0))
-
-waning_linear <- function(x){1-x/36}
-waning_exponential <- function(x){1*0.9^x}
-
-ggplot(data.frame(x = c(0, 36)), aes(x = x)) + 
-  geom_line(data = waning, aes(x = time, y = waning, colour = "step-wise")) +
-  stat_function(fun = waning_linear, aes(colour = "linear")) +
-  stat_function(fun = waning_exponential, aes(colour = "exponential")) +
-  theme_bw() +
-  scale_colour_manual("Shapes", values = c("blue", "red", "black")) +
-  scale_x_continuous(breaks = seq(0, 36, 3)) +
-  labs(x = "Months since birth", y = "% decrease on probability of disease", title = "Aging over time")
-
-# plot increasing effect of aging
-curve(1-(1-x/36), from = 0, to = 36, xlab = "Months since birth", ylab = "Increasing age", main = "Increasing age over time")
-curve(1-(1*0.9^x), from = 0, to = 36, xlab = "Months since birth", ylab = "Increasing age", main = "Increasing age over time")
-
-aging <- as.data.frame(matrix(NA, 12*3, 3))
-colnames(aging) <- c("time", "month", "aging")
-aging <- aging %>%
-  mutate(time = 1:36,
-         month = rep(month.abb, 3),
-         aging = case_when(time <= 6 ~ 0,
-                           time > 6 & time <= 12 ~ 0.5,
-                           time > 12 & time <= 24 ~ 0.8,
-                           time > 24 ~ 1))
-
-aging_linear <- function(x){1-(1-x/36)}
-aging_exponential <- function(x){1-(1*0.9^x)}
-
-ggplot(data.frame(x = c(0, 36)), aes(x = x)) + 
-  geom_line(data = aging, aes(x = time, y = aging, colour = "step-wise")) +
-  stat_function(fun = aging_linear, aes(colour = "linear")) +
-  stat_function(fun = aging_exponential, aes(colour = "exponential")) +
-  theme_bw() +
-  scale_colour_manual("Shapes", values = c("blue", "red", "black")) +
-  scale_x_continuous(breaks = seq(0, 36, 3)) +
-  labs(x = "Months since birth", y = "% increase on probability of infection", title = "Waning immunity over time")
-
