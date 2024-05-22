@@ -9,19 +9,8 @@ library(plotly)
 
 # -------------------------------------------------------------------------
 
-# load data and calculate over 2yrs, under 2yrs, pregnancy trimester counts and proportions
-birth_data <- read_excel("./data/births_pregnancies.xlsx", sheet = "All") %>%
-  mutate(year_month = paste(year, month, sep = "_"),
-         date = as.Date(as.yearmon(`year_month`, "%Y_%b")),) %>%
-  select(year, month, date, births) %>% 
-  filter(!is.na(births)) %>% 
-  slice(1:(12*10)) %>% 
-  mutate(time = 1:nrow(.))
-
-# -------------------------------------------------------------------------
-
 # infection and disease model for monthly births
-model_births <- function(month_chosen = c(), disruption_year = c()){
+model_births <- function(month_chosen = c()){
   rep <- 3 # number of years
   rate_scale <- 5 # scaling rate of infection to achieve 90-95% in first 3yrs of life
   
@@ -65,11 +54,11 @@ model_births <- function(month_chosen = c(), disruption_year = c()){
                                         month_chosen == "Dec" ~ 59574)
   
   # read women.prop dataset
-  women.prop <- readRDS("./output/data/women_prop.rds")
+  women.prop <- readRDS("./output/data/women/women_prop.rds")
   
   # join women's immunity level proportions to output
   output <- output %>% 
-    left_join(women.prop %>% select(-count) %>% filter(disruption == disruption_year)) %>% 
+    left_join(women.prop %>% select(-count)) %>% 
     # set probability of infection/disease based on immunity level
     mutate(prob_inf = case_when(level == 1 ~ 0,
                                 level == 2 ~ 0.5,
@@ -138,34 +127,12 @@ model_births <- function(month_chosen = c(), disruption_year = c()){
 
 # model one year of monthly births
 for(m in month.abb){
-  model_births(month_chosen = m, disruption_year = 0)
+  model_births(month_chosen = m)
 }
 
 # -------------------------------------------------------------------------
 
 # determine age at infection and disease
-
-for(m in 1:12){
-  assign(paste0("births_", month.abb[m]), readRDS(file = paste0("./output/data/monthly/births_", month.abb[m], ".rds")) %>% mutate(month_born = month.abb[m]))
-}
-
-# month of age
-births_age_month <- bind_rows(births_Jan, births_Feb, births_Mar, births_Apr, births_May, births_Jun, births_Jul, births_Aug, births_Sep, births_Oct, births_Nov, births_Dec) %>% 
-  mutate(month_born = factor(month_born, levels = month.abb),
-         population = case_when(month_born == "Jan" ~ 61942,
-                                month_born == "Feb" ~ 59783,
-                                month_born == "Mar" ~ 61043,
-                                month_born == "Apr" ~ 58088,
-                                month_born == "May" ~ 62736,
-                                month_born == "Jun" ~ 59664,
-                                month_born == "Jul" ~ 61920,
-                                month_born == "Aug" ~ 61995,
-                                month_born == "Sep" ~ 62949,
-                                month_born == "Oct" ~ 63387,
-                                month_born == "Nov" ~ 59593,
-                                month_born == "Dec" ~ 59574))
-
-saveRDS(births_age_month, file = "./output/data/births_age_month.rds")
 
 # age groups
 births_age <- bind_rows(births_Jan, births_Feb, births_Mar, births_Apr, births_May, births_Jun, births_Jul, births_Aug, births_Sep, births_Oct, births_Nov, births_Dec) %>% 
@@ -184,7 +151,7 @@ births_age <- bind_rows(births_Jan, births_Feb, births_Mar, births_Apr, births_M
             disease = sum(disease)) %>% 
   pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "count")
 
-saveRDS(births_age, file = "./output/data/births_age.rds")
+saveRDS(births_age, file = "./output/data/disruption/births_age.rds")
 
 # -------------------------------------------------------------------------
 
@@ -214,7 +181,7 @@ births_year <- bind_rows(births_Jan, births_Feb, births_Mar, births_Apr, births_
                                 month_born == "Nov" ~ 59593,
                                 month_born == "Dec" ~ 59574))
 
-saveRDS(births_year, file = "./output/data/births_year.rds")
+saveRDS(births_year, file = "./output/data/disruption/births_year.rds")
 
 # yearly dataset with distribution of infection/disease per season by month of birth
 
@@ -246,26 +213,3 @@ births_season %>%
                       dtick = 5000,
                       tickformat = "digits"),
          xaxis = list(title = "Season (Jul-Jun)"))
-
-# -------------------------------------------------------------------------
-
-# need to repeat lines 137-215 for each disruption category by specifying disruption_year argument in model
-
-# combining different different immunity proportions
-births_year_disrupt <- bind_rows(readRDS(file = "./output/data/disruption/births_year_0.rds") %>% mutate(disruption = 0),
-                                 readRDS(file = "./output/data/disruption/births_year_1.rds") %>% mutate(disruption = 1),
-                                 readRDS(file = "./output/data/disruption/births_year_2.rds") %>% mutate(disruption = 2),
-                                 readRDS(file = "./output/data/disruption/births_year_3.rds") %>% mutate(disruption = 3))
-saveRDS(births_year_disrupt, file = "./output/data/births_year_disrupt.rds")
-
-births_age_disrupt <- bind_rows(readRDS(file = "./output/data/disruption/births_age_0.rds") %>% mutate(disruption = 0),
-                                readRDS(file = "./output/data/disruption/births_age_1.rds") %>% mutate(disruption = 1),
-                                readRDS(file = "./output/data/disruption/births_age_2.rds") %>% mutate(disruption = 2),
-                                readRDS(file = "./output/data/disruption/births_age_3.rds") %>% mutate(disruption = 3))
-saveRDS(births_age_disrupt, file = "./output/data/births_age_disrupt.rds")
-
-births_age_month_disrupt <- bind_rows(readRDS(file = "./output/data/disruption/births_age_month_0.rds") %>% mutate(disruption = 0),
-                                      readRDS(file = "./output/data/disruption/births_age_month_1.rds") %>% mutate(disruption = 1),
-                                      readRDS(file = "./output/data/disruption/births_age_month_2.rds") %>% mutate(disruption = 2),
-                                      readRDS(file = "./output/data/disruption/births_age_month_3.rds") %>% mutate(disruption = 3))
-saveRDS(births_age_month_disrupt, file = "./output/data/births_age_month_disrupt.rds")
