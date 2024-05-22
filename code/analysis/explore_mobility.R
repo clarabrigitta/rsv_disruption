@@ -1,3 +1,4 @@
+# load libraries
 library(readxl)
 library(plotly)
 library(dplyr)
@@ -38,5 +39,3 @@ plot_ly(mobility,
                                 as.numeric(as.POSIXct("2024-12-31", format="%Y-%m-%d"))*1000),
                       type = "date"),
          yaxis = list(title = 'Percent Change'))
-
-# plot restrictions data
