@@ -1,7 +1,8 @@
 library(dplyr)
 library(tidyr)
 library(stringr)
-
+library(readxl)
+library(zoo)
 
 # -------------------------------------------------------------------------
 # data preparation
@@ -68,7 +69,7 @@ for(n in 1:nrow(model_continuous_births)){
            prob_dis = case_when(level == 1 ~ 0,
                                 level == 2 ~ 0,
                                 level == 3 ~ 0.5,
-                                level == 4 ~ 1)) %>% 
+                                level == 4 ~ 1)) %>%
     # introduce waning immunity to probability of infection
     mutate(waning = case_when(time_birth <= 6 ~ 1,
                               time_birth > 6 & time_birth <= 12 ~ 0.5,
