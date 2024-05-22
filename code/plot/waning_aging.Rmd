@@ -15,11 +15,11 @@ source(file = "/Users/lsh2301561/Desktop/rsv_disruption/code/plot/plot_births.R"
 ```
 
 ```{r data, include=FALSE}
-births <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births.rds")
-births_waning <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_waning.rds")
-births_aging <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_aging.rds")
-births_waning_aging <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_waning_aging.rds")
-women_prop <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/women_prop.rds")
+births <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/waning_aging/births.rds")
+births_waning <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/waning_aging/births_waning.rds")
+births_aging <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/waning_aging/births_aging.rds")
+births_waning_aging <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/waning_aging/births_waning_aging.rds")
+women_prop <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_prop.rds")
 ```
 ## Rate of Exposure
 
@@ -88,11 +88,12 @@ manipulateWidget::combineWidgets(births %>% plot_infections() %>% layout(title =
 Cumulative first infection proportions.
 
 ```{r cumpropinf, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
-manipulateWidget::combineWidgets(births %>% plot_cumpropinf() %>% layout(title = "No Waning or Aging"),
-                                 births_waning %>% plot_cumpropinf() %>% layout(title = "Waning"),
-                                 births_aging %>% plot_cumpropinf() %>% layout(title = "Aging"),
-                                 births_waning_aging %>% plot_cumpropinf() %>% layout(title = "Waning and Aging"),
-                                 nrow = 2)
+# error with code
+# manipulateWidget::combineWidgets(births %>% plot_cumprop() %>% layout(title = "No Waning or Aging"),
+#                                  births_waning %>% plot_cumpropinf() %>% layout(title = "Waning"),
+#                                  births_aging %>% plot_cumpropinf() %>% layout(title = "Aging"),
+#                                  births_waning_aging %>% plot_cumpropinf() %>% layout(title = "Waning and Aging"),
+#                                  nrow = 2)
 ```
 
 ## Disease
@@ -112,9 +113,10 @@ manipulateWidget::combineWidgets(births %>% plot_disease() %>% layout(title = "N
 Cumulative proportions of babies experiencing disease for the first time.
 
 ```{r cumpropdis, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
-manipulateWidget::combineWidgets(births %>% plot_cumpropdis() %>% layout(title = "No Waning or Aging"),
-                                 births_waning %>% plot_cumpropdis() %>% layout(title = "Waning"),
-                                 births_aging %>% plot_cumpropdis() %>% layout(title = "Aging"),
-                                 births_waning_aging %>% plot_cumpropdis() %>% layout(title = "Waning and Aging"),
-                                 nrow = 2)
+# error with code
+# manipulateWidget::combineWidgets(births %>% plot_cumpropdis() %>% layout(title = "No Waning or Aging"),
+#                                  births_waning %>% plot_cumpropdis() %>% layout(title = "Waning"),
+#                                  births_aging %>% plot_cumpropdis() %>% layout(title = "Aging"),
+#                                  births_waning_aging %>% plot_cumpropdis() %>% layout(title = "Waning and Aging"),
+#                                  nrow = 2)
 ```
