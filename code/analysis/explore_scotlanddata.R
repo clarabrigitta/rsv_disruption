@@ -1,5 +1,3 @@
-setwd("~/Desktop/PhD")
-
 # load libraries
 library(readxl)
 library(ggplot2)
@@ -8,6 +6,7 @@ library(tidyr)
 library(lubridate)
 library(viridisLite)
 library(plotly)
+library(lubridate)
 
 # load data
 rate <- read.csv("./data/respiratory_age_20240131.csv") %>%
@@ -148,8 +147,6 @@ unique(rate$Pathogen)
 
 # smoothing 15-44 RSV rate to use as baseline
 
-library(lubridate)
-
 rate_scot <- read.csv("./data/respiratory_age_20240131.csv") %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d")) %>% 
   filter(Pathogen == "Respiratory syncytial virus",
@@ -164,6 +161,8 @@ rate_scot <- read.csv("./data/respiratory_age_20240131.csv") %>%
   mutate(rate_scot = (RatePer100000/1000)*300,
          time = 745:(745+nrow(.)-1)) %>% 
   slice(-(1:4))
+
+saveRDS(rate_scot, file = "./output/data/prefitting/rate_scot.rds")
 
 plot_ly() %>% 
   add_trace(data = rate,
