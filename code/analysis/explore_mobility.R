@@ -21,6 +21,8 @@ mobility <- read.csv(file = "./data/changes-visitors-covid.csv") %>%
   mutate(value = 1-abs(value/100)) %>% 
   filter(category == "workplaces")
 
+saveRDS(mobility, file = "./output/data/prefitting/mobility.rds")
+
 restrictions <- read_excel("./data/uk_restrictions.xlsx") %>% 
   select(-source) %>% 
   mutate(start = as.Date(start, format = "%Y-%m-%d"))
