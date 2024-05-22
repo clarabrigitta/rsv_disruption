@@ -37,7 +37,7 @@ count %>%
        y = "Number of Cases (per week)")
 
 plot_ly() %>% 
-  add_trace(data = count,
+  add_trace(data = count %>% filter(Pathogen == "Respiratory syncytial virus"),
             x = ~date,
             y = ~NumberCasesPerWeek,
             type = 'scatter',
@@ -142,3 +142,34 @@ for(row in 1:nrow(restrict)){
 fig
 
 unique(rate$Pathogen)
+
+
+# -------------------------------------------------------------------------
+
+# smoothing 15-44 RSV rate to use as baseline
+
+library(lubridate)
+
+rate_scot <- read.csv("./data/respiratory_age_20240131.csv") %>%
+  mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d")) %>% 
+  filter(Pathogen == "Respiratory syncytial virus",
+         AgeGroup == "15-44 years") %>%
+  mutate(yearmon = as.yearmon(date),
+         year = year(date),
+         month = month(date)) %>% 
+  filter(year >= 2017, year < 2023) %>%
+  group_by(yearmon, year, month) %>%
+  summarise(RatePer100000 = mean(RatePer100000)) %>%
+  ungroup() %>% 
+  mutate(rate_scot = (RatePer100000/1000)*300,
+         time = 745:(745+nrow(.)-1)) %>% 
+  slice(-(1:4))
+
+plot_ly() %>% 
+  add_trace(data = rate,
+            x = ~yearmon,
+            y = ~rateper100,
+            type = 'scatter',
+            mode = 'lines') %>% 
+  layout(xaxis = list(title = 'Date', tickangle = -45), 
+         yaxis = list(title = 'Rate (per 100)', showgrid = T))
