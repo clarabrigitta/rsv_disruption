@@ -1,5 +1,3 @@
-setwd("~/Desktop/PhD")
-
 # load libraries
 library(readxl)
 library(ggplot2)
