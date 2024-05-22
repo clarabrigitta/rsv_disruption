@@ -1,3 +1,4 @@
+# load libraries
 library(dplyr)
 library(tidyr)
 library(stringr)
@@ -43,7 +44,6 @@ immunity_split <- readRDS("./output/data/women/women_long_disrupt.rds") %>%
   select(-count) %>% 
   left_join(birth_data %>% select(month, births, time)) %>% 
   mutate(susceptible = proportion * births)
-
 
 # -------------------------------------------------------------------------
 # model continuous monthly births, each for 3 months
