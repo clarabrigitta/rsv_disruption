@@ -113,7 +113,7 @@ women.long <- women %>%
          proportion = count/sum)
 
 # save long model output
-saveRDS(women.long, file = "./output/data/women/women_rate_prefitting.rds")
+saveRDS(women.long, file = "./output/data/women/women_rate_prefitting_scot.rds")
 
 # -------------------------------------------------------------------------
 
@@ -122,16 +122,31 @@ saveRDS(women.long, file = "./output/data/women/women_rate_prefitting.rds")
 # data preparation
 
 # load birth data
-birth_data <- read_excel("./data/births_pregnancies.xlsx", sheet = "All") %>%
-  mutate(year_month = paste(year, month, sep = "_"),
-         date = as.Date(as.yearmon(`year_month`, "%Y_%b")),) %>%
+# # england
+# birth_data <- read_excel("./data/births_pregnancies.xlsx", sheet = "All") %>%
+#   mutate(year_month = paste(year, month, sep = "_"),
+#          date = as.Date(as.yearmon(`year_month`, "%Y_%b")),) %>%
+#   select(year, month, date, births) %>% 
+#   filter(!is.na(births)) %>% 
+#   slice(1:(12*10)) %>% 
+#   mutate(time = 1:nrow(.))
+
+# scotland
+birth_data <- read_excel("./data/births-time-series-22-bt.3.xlsx", skip = 3) %>% 
+  head(-7) %>% 
+  select(1:14) %>% 
+  select(-Total) %>% 
+  rename(year = Year) %>% 
+  pivot_longer(cols = `Jan`:`Dec`, names_to = "month", values_to = "births") %>% 
+  filter(year >= 2012, year <= 2021) %>% 
+  mutate(month = rep(month.abb, 10),
+         year_month = paste(year, month, sep = "_"),
+         date = as.Date(as.yearmon(`year_month`, "%Y_%b"))) %>%
   select(year, month, date, births) %>% 
-  filter(!is.na(births)) %>% 
-  slice(1:(12*10)) %>% 
   mutate(time = 1:nrow(.))
 
 # create reference table for rates to join
-rate_reference <- readRDS("./output/data/women/women_rate_prefitting.rds") %>% 
+rate_reference <- readRDS("./output/data/women/women_rate_prefitting_scot.rds") %>% 
   select(time, month, rate) %>% 
   distinct() %>% 
   filter(time <= 12*75, time > 12*60) %>% 
@@ -141,7 +156,7 @@ rate_reference <- readRDS("./output/data/women/women_rate_prefitting.rds") %>%
   mutate(level = factor(level, levels = 1:4))
 
 # create 10 years of infection history/immunity split
-immunity_split <- readRDS("./output/data/women/women_rate_prefitting.rds") %>% 
+immunity_split <- readRDS("./output/data/women/women_rate_prefitting_scot.rds") %>% 
   filter(time <= 12*70, time > 12*60) %>% 
   mutate(month = factor(month, levels = month.abb)) %>% 
   filter(infection != "susceptible_naive") %>% 
@@ -170,10 +185,10 @@ for(n in 1:nrow(model_continuous_births)){
   data <- model_continuous_births[[2]][[n]] %>% 
     mutate(time = n) %>% 
     right_join(rate_reference) %>% 
-    filter(time %in% c(n:(n+12*3-1))) %>% 
+    filter(time %in% c(n:(n+12*4-1))) %>% 
     # distinguish between calendar months and months since birth
     rename(time_calendar = time) %>% 
-    mutate(time_birth = rep(1:36, each = 4)) %>% 
+    mutate(time_birth = rep(1:48, each = 4)) %>% 
     # set probability of infection/disease based on immunity level - choose one of the options.
     # option 1
     mutate(prob_inf = case_when(level == 1 ~ 0,
@@ -205,19 +220,19 @@ for(n in 1:nrow(model_continuous_births)){
   #                             level == 3 ~ 0.50,
   #                             level == 4 ~ 0.75)) %>%
   # explore changing the shape of waning and aging - choose one of the options.
-    # option 1
-    # introduce waning immunity to probability of infection
-    mutate(waning = case_when(time_birth <= 6 ~ 1,
-                              time_birth > 6 & time_birth <= 12 ~ 0.5,
-                              time_birth > 12 & time_birth <= 24 ~ 0.2,
-                              time_birth > 24 ~ 0),
-           prob_inf = 1 - ((1 - prob_inf) * waning)) %>%
-    # introduce aging to probability of disease
-    mutate(aging = case_when(time_birth <= 6 ~ 1,
-                             time_birth > 6 & time_birth <= 12 ~ 0.5,
-                             time_birth > 12 & time_birth <= 24 ~ 0.2,
-                             time_birth > 24 ~ 0),
-           prob_dis = prob_dis * aging) %>%
+    # # option 1
+    # # introduce waning immunity to probability of infection
+    # mutate(waning = case_when(time_birth <= 6 ~ 1,
+    #                           time_birth > 6 & time_birth <= 12 ~ 0.5,
+    #                           time_birth > 12 & time_birth <= 24 ~ 0.2,
+    #                           time_birth > 24 ~ 0),
+    #        prob_inf = 1 - ((1 - prob_inf) * waning)) %>%
+    # # introduce aging to probability of disease
+    # mutate(aging = case_when(time_birth <= 6 ~ 1,
+    #                          time_birth > 6 & time_birth <= 12 ~ 0.5,
+    #                          time_birth > 12 & time_birth <= 24 ~ 0.2,
+    #                          time_birth > 24 ~ 0),
+    #        prob_dis = prob_dis * aging) %>%
 # -------------------------------------------------------------------------
     # # option 2
     # # introduce waning immunity to probability of infection
@@ -226,13 +241,13 @@ for(n in 1:nrow(model_continuous_births)){
     # # introduce aging to probability of disease
     # mutate(aging = 1-time_birth/36,
     #        prob_dis = prob_dis * aging) %>%
-    # # option 3
-    # # introduce waning immunity to probability of infection
-    # mutate(waning = 1*0.9^time_birth,
-    #      prob_inf = 1 - ((1 - prob_inf) * waning)) %>%
-    # # introduce aging to probability of disease
-    # mutate(aging = 1*0.9^time_birth,
-    #        prob_dis = prob_dis * aging) %>%
+    # option 3
+    # introduce waning immunity to probability of infection
+    mutate(waning = 1*0.9^time_birth,
+         prob_inf = 1 - ((1 - prob_inf) * waning)) %>%
+    # introduce aging to probability of disease
+    mutate(aging = 1*0.9^time_birth,
+           prob_dis = prob_dis * aging) %>%
     # determine initial number of infected and disease
     mutate(infected = susceptible * rate * prob_inf,
            disease = infected * prob_dis) %>% 
@@ -256,15 +271,16 @@ for(n in 1:nrow(model_continuous_births)){
     filter(!is.na(month)) %>%
     mutate(`<6` = ifelse(time_birth < 6, 1, 0),
            `6-12` = ifelse(time_birth >= 6 & time_birth < 12, 1, 0),
-           `12-24` = ifelse(time_birth >= 12 & time_birth < 24, 1, 0),
-           `24-36` = ifelse(time_birth >= 24 & time_birth <= 36, 1, 0))
+           `12-24` = ifelse(time_birth >= 12 & time_birth <= 24, 1, 0),
+           `24-36` = ifelse(time_birth >= 24 & time_birth <= 36, 1, 0),
+           `36-48` = ifelse(time_birth >= 36 & time_birth <= 48, 1, 0))
   
   model_continuous_births[[2]][[n]] <- data
 }
 
 output <- model_continuous_births %>% unnest()
 
-saveRDS(output, file = "./output/data/prefitted_model.rds") # add suffix (_...) as necessary (for rate: scot, mobility; for shapes: linear, exponential)
+saveRDS(output, file = "./output/data/prefitting/prefitted_model_exponential.rds") # add suffix (_...) as necessary (for rate: scot, mobility; for shapes: linear, exponential)
 
 
 # -------------------------------------------------------------------------
@@ -288,4 +304,50 @@ plot_ly() %>%
                       ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
                       tickmode = "array",
                       tickangle = -45),
-         yaxis = list(title = "Rate of exposure"))
+         shapes = lockdown)
+
+
+# -------------------------------------------------------------------------
+
+# match model output to data
+
+test <- output %>% 
+  select(-time) %>% 
+  mutate(age = case_when(time_birth  < 12 ~ "<1",
+                         time_birth >= 12 & time_birth  <= 48 ~ "1-4")) %>%
+  group_by(time_calendar, month, rate, age) %>% 
+  summarise(infected = sum(infected),
+            disease = sum(disease)) %>% 
+  ungroup() %>% 
+  pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "count") %>%
+  left_join(population) %>% 
+  mutate(rate = (count/population)*100000)
+
+# visualise
+test %>% 
+filter(type == "disease") %>% 
+plot_ly() %>%
+  add_trace(
+    x = ~time_calendar,
+    y = ~rate,
+    split = ~age,
+    colour = ~age,
+    type = "scatter",
+    mode = "line",
+    text = ~month
+  ) %>%
+  layout(xaxis = list(title = "Calendar month",
+                      range = list(37, 120),
+                      tickvals = seq(37, 120, 3),
+                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
+                      tickmode = "array",
+                      tickangle = -45),
+         yaxis = list(title = "Rate (per 100,000)",
+                      # range = list(0, 15000),
+                      # tickmode = "linear",
+                      # tick0 = 0,
+                      # dtick = 2000,
+                      # tickformat = "digits",
+                      side = "left"),
+         shapes = lockdown)         
+         
