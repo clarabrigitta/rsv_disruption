@@ -3,18 +3,44 @@ library(readxl)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
-library(lubridate)
 library(viridisLite)
 library(plotly)
 library(lubridate)
 
 # load data
-rate <- read.csv("./data/respiratory_age_20240131.csv") %>%
+# weekly rate of laboratory confirmed cases by age and pathogen
+rate <- read.csv("./data/respiratory_age_20240515.csv") %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d"))
-count <- read.csv("./data/respiratory_scot_20240131.csv") %>%
+# weekly count of laboratory confirmed cases by age and pathogen
+count <- read.csv("./data/respiratory_scot_20240515.csv") %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d"))
+# data on lock down restrictions
 restrict <- read_excel("./data/uk_restrictions.xlsx") %>% 
   mutate(start = as.Date(start))
+# scottish population data by age
+population <- read_excel("./data/mid-year-pop-est-22-data.xlsx", sheet = "Table 1", skip = 3) %>% 
+  filter(`Area name` == "Scotland",
+         Sex == "Persons") %>% 
+  select(1:10) %>% 
+  select(-`All ages`) %>% 
+  pivot_longer(cols = `0`:`4`, names_to = "age_year", values_to = "population") %>% 
+  mutate(age = ifelse(age_year == 0, "<1", "1-4")) %>% 
+  group_by(age) %>% 
+  summarise(population = sum(population))
+# scottish birth data by month registered
+births <- read_excel("./data/births-time-series-22-bt.3.xlsx", skip = 3) %>% 
+  head(-7) %>% 
+  select(1:14) %>% 
+  select(-Total) %>% 
+  rename(year = Year) %>% 
+  pivot_longer(cols = `Jan`:`Dec`, names_to = "month", values_to = "births") %>% 
+  filter(year >= 2012, year <= 2021) %>% 
+  mutate(month = rep(month.abb, 10),
+         year_month = paste(year, month, sep = "_"),
+         date = as.Date(as.yearmon(`year_month`, "%Y_%b"))) %>%
+  select(year, month, date, births) %>% 
+  mutate(time = 1:nrow(.))
+
 
 # percentage of rate per age group
 test <- left_join(filter(rate, Pathogen == "Respiratory syncytial virus"), rate %>% 
@@ -25,7 +51,7 @@ test <- left_join(filter(rate, Pathogen == "Respiratory syncytial virus"), rate 
 
 # weekly number of laboratory-confirmed cases by pathogen and flu type in Scotland
 count %>% 
-  # filter(Pathogen == "Respiratory syncytial virus") %>%
+  filter(Pathogen == "Respiratory syncytial virus") %>%
   ggplot() +
   geom_line(aes(x = date, y = NumberCasesPerWeek, colour = Pathogen)) +
   scale_x_date(date_breaks = "1 month", date_labels =  "%b %Y") +
@@ -147,14 +173,14 @@ unique(rate$Pathogen)
 
 # smoothing 15-44 RSV rate to use as baseline
 
-rate_scot <- read.csv("./data/respiratory_age_20240131.csv") %>%
+rate_scot <- read.csv("./data/respiratory_age_20240515.csv") %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d")) %>% 
   filter(Pathogen == "Respiratory syncytial virus",
          AgeGroup == "15-44 years") %>%
   mutate(yearmon = as.yearmon(date),
          year = year(date),
          month = month(date)) %>% 
-  filter(year >= 2017, year < 2023) %>%
+  # filter(year >= 2017, year < 2023) %>%
   group_by(yearmon, year, month) %>%
   summarise(RatePer100000 = mean(RatePer100000)) %>%
   ungroup() %>% 
@@ -165,10 +191,10 @@ rate_scot <- read.csv("./data/respiratory_age_20240131.csv") %>%
 saveRDS(rate_scot, file = "./output/data/prefitting/rate_scot.rds")
 
 plot_ly() %>% 
-  add_trace(data = rate,
+  add_trace(data = rate_scot,
             x = ~yearmon,
-            y = ~rateper100,
+            y = ~rate_scot,
             type = 'scatter',
             mode = 'lines') %>% 
   layout(xaxis = list(title = 'Date', tickangle = -45), 
-         yaxis = list(title = 'Rate (per 100)', showgrid = T))
+         yaxis = list(title = 'Rate', showgrid = T))

@@ -11,6 +11,10 @@ women <- readRDS("./output/data/women/women.rds")
 women.long <- readRDS("./output/data/women/women_long.rds")
 women_long_disrupt <- readRDS("./output/data/women/women_long_disrupt.rds")
 
+# parameters used in model
+n_interest <- 24 # number of months of interest for history of infection/ duration of immunity
+rep <- 75 # number of years to model
+
 # plot infection status proportions
 women.long %>% 
   filter(time > 12*60) %>%

@@ -16,20 +16,30 @@ library(viridisLite)
 library(readxl)
 library(zoo)
 library(stringr)
+library(ggpubr)
 
 ```
 
 ```{r data, include=FALSE}
 # load main data frame to be used
-# output <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitted_model_scot.rds")
-# linear <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitted_model_linear.rds")
-# exponential <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitted_model_exponential.rds")
 
-output <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitted_model.rds")
-linear <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitted_model_mobility.rds")
-exponential <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitted_model_scot.rds")
+# # 1. for comparison of shapes of waning and aging
+# one <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitting/prefitted_model_scot.rds")
+# two <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitting/prefitted_model_linear.rds")
+# three <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitting/prefitted_model_exponential.rds")
+# 
+# # 2. for comparison of rates
+# one <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitting/prefitted_model.rds")
+# two <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitting/prefitted_model_mobility.rds")
+# three <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitting/prefitted_model_scot.rds")
+
+# 3. for comparison of probabilities
+one <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitting/prefitted_model_functionised.rds")
+two <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitting/prefitted_model_functionised_linear.rds")
+three <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/prefitting/prefitted_model_functionised_exponential.rds")
 
 # load other datasets
+
 # load mobility data
 mobility <- read.csv(file = "/Users/lsh2301561/Desktop/rsv_disruption/data/changes-visitors-covid.csv") %>%
   filter(Code == "GBR") %>% 
@@ -37,45 +47,62 @@ mobility <- read.csv(file = "/Users/lsh2301561/Desktop/rsv_disruption/data/chang
   pivot_longer(cols = `retail_and_recreation`:`workplaces`, names_to = "category", values_to = "value")
 
 # load birth data
-birth_data <- read_excel("/Users/lsh2301561/Desktop/rsv_disruption/data/births_pregnancies.xlsx", sheet = "All") %>%
-  mutate(year_month = paste(year, month, sep = "_"),
-         date = as.Date(as.yearmon(`year_month`, "%Y_%b")),) %>%
+birth_data <- read_excel("/Users/lsh2301561/Desktop/rsv_disruption/data/births-time-series-22-bt.3.xlsx", skip = 3) %>% 
+  head(-7) %>% 
+  select(1:14) %>% 
+  select(-Total) %>% 
+  rename(year = Year) %>% 
+  pivot_longer(cols = `Jan`:`Dec`, names_to = "month", values_to = "births") %>% 
+  filter(year >= 2012, year <= 2021) %>% 
+  mutate(month = rep(month.abb, 10),
+         year_month = paste(year, month, sep = "_"),
+         date = as.Date(as.yearmon(`year_month`, "%Y_%b"))) %>%
   select(year, month, date, births) %>% 
-  filter(!is.na(births)) %>% 
-  slice(1:(12*10)) %>% 
   mutate(time = 1:nrow(.))
 
-# create reference table for rates to join
-rate_reference <- readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_prefitting.rds") %>% 
-  select(time, month, rate) %>% 
-  distinct() %>% 
-  filter(time <= 12*75, time > 12*60) %>% 
-  mutate(month = factor(month, levels = month.abb),
-         time = 1:nrow(.)) %>% 
-  cross_join(data.frame(level = 1:4)) %>% 
-  mutate(level = factor(level, levels = 1:4))
+# # create reference table for rates to join
+# rate_reference <- readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_prefitting_scot.rds") %>% 
+#   select(time, month, rate) %>% 
+#   distinct() %>% 
+#   filter(time <= 12*75, time > 12*60) %>% 
+#   mutate(month = factor(month, levels = month.abb),
+#          time = 1:nrow(.)) %>% 
+#   cross_join(data.frame(level = 1:4)) %>% 
+#   mutate(level = factor(level, levels = 1:4))
 
-# create 10 years of infection history/immunity split
-immunity_split <- readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_prefitting.rds") %>% 
-  filter(time <= 12*70, time > 12*60) %>% 
-  mutate(month = factor(month, levels = month.abb)) %>% 
-  filter(infection != "susceptible_naive") %>% 
-  mutate(level = as.factor(case_when(infection %in% str_c(rep("I", 6), 1:6) ~ 1,
-                                     infection %in% str_c(rep("I", 9), 7:15) ~ 2,
-                                     infection %in% str_c(rep("I", 9), 16:24) ~ 3,
-                                     infection == "susceptible_reinf" ~ 4))) %>% 
-  group_by(time, rate, month, level) %>% 
-  summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
-  ungroup() %>% 
-  mutate(time = rep(1:(12*10), each = 4)) %>% 
-  # combining with birth data
-  select(-count) %>% 
-  left_join(birth_data %>% select(month, births, time)) %>% 
-  mutate(susceptible = proportion * births)
+# # create 10 years of infection history/immunity split
+# immunity_split <- readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_prefitting_scot.rds") %>%
+#   filter(time <= 12*70, time > 12*60) %>%
+#   mutate(month = factor(month, levels = month.abb)) %>%
+#   filter(infection != "susceptible_naive") %>%
+#   mutate(level = as.factor(case_when(infection %in% str_c(rep("I", 6), 1:6) ~ 1,
+#                                      infection %in% str_c(rep("I", 9), 7:15) ~ 2,
+#                                      infection %in% str_c(rep("I", 9), 16:24) ~ 3,
+#                                      infection == "susceptible_reinf" ~ 4))) %>%
+#   group_by(time, rate, month, level) %>%
+#   summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>%
+#   ungroup() %>%
+#   mutate(time = rep(1:(12*10), each = 4)) %>%
+#   # combining with birth data
+#   select(-count) %>%
+#   left_join(birth_data %>% select(month, births, time)) %>%
+#   mutate(susceptible = proportion * births)
+
+# scottish population data by age
+population <- read_excel("/Users/lsh2301561/Desktop/rsv_disruption/data/mid-year-pop-est-22-data.xlsx", sheet = "Table 1", skip = 3) %>% 
+  filter(`Area name` == "Scotland",
+         Sex == "Persons") %>% 
+  select(1:10) %>% 
+  select(-`All ages`) %>% 
+  pivot_longer(cols = `0`:`4`, names_to = "age_year", values_to = "population") %>% 
+  mutate(age = ifelse(age_year == 0, "<1", "1-4")) %>% 
+  group_by(age) %>% 
+  summarise(population = sum(population))
 
 ```
 
 ```{r plot, include=FALSE}
+# shapes object for lockdown period in plots
 lockdown <- list(list(type = "line",
                             y0 = 0,
                             y1 = 1,
@@ -191,20 +218,21 @@ lockdown <- list(list(type = "line",
                             opacity = 0.4,
                             line = list(width = 0)))
 
+# plotting function for infection and disease curve
 plot_curve <- function(data, max = c(), tick =c(), ind = c("infected", "disease")){
-  output %>%
+  data %>%
   group_by(time_calendar, month, rate) %>%
   summarise(across(c("susceptible", "infected", "disease"), sum, na.rm = TRUE)) %>%
   ungroup() %>%
-  pivot_longer(cols = c("susceptible", "infected", "disease"), names_to = "type", values_to = "count") %>% 
-  filter(type == ind) %>% 
+  pivot_longer(cols = c("susceptible", "infected", "disease"), names_to = "type", values_to = "count") %>%
+  filter(type == ind) %>%
   plot_ly() %>%
   add_trace(
     x = ~time_calendar,
     y = ~count,
     type = "scatter",
     mode = "line",
-    text = ~month,
+    text = ~month
   ) %>%
   # add_trace(data = mobility,
   #       x = ~time_calendar,
@@ -235,14 +263,170 @@ plot_curve <- function(data, max = c(), tick =c(), ind = c("infected", "disease"
          shapes = lockdown)
 }
 
+plot_split <- function(data, max = c(), tick =c(), ind = c("infected", "disease")){
+  data %>% 
+  group_by(time_calendar, month, rate, level) %>% 
+  summarise(across(c("susceptible", "infected", "disease"), sum, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+    pivot_longer(cols = c("susceptible", "infected", "disease"), names_to = "type", values_to = "count") %>%
+  filter(type == ind) %>% 
+  plot_ly() %>% 
+  add_trace(
+    x = ~time_calendar,
+    y = ~count,
+    type = "scatter",
+    mode = "line",
+    split = ~level,
+    color = ~level, 
+    # colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"),
+    text = ~month,
+    hovertemplate = paste('<b>Month</b>: %{text}',
+                          '<br><b>Count</b>: %{y}',
+                          '<extra></extra>')
+  ) %>% 
+  layout(xaxis = list(title = "Calendar month",
+                      range = list(37, 120),
+                      tickvals = seq(37, 120, 3),
+                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
+                      tickmode = "array",
+                      tickangle = -45),
+         yaxis = list(title = "Infection Count",
+                      range = list(0, max),
+                      tickmode = "linear",
+                      tick0 = 0,
+                      dtick = tick, 
+                      tickformat = "digits"),
+         legend = list(title = list(text = "Immunity Level")),
+         shapes = lockdown)
+}
+
+plot_bar <- function(data, ind = c("infected", "disease")){
+  data %>% 
+  select(-time) %>% 
+  pivot_longer(cols = c("<6", "6-12", "12-24", "24-36"), names_to = "age", values_to = "value") %>%
+  mutate(age = factor(age, levels = c("<6", "6-12", "12-24", "24-36"))) %>% 
+  filter(value == 1) %>% 
+  select(-value) %>% 
+  group_by(time_calendar, month, rate, age) %>% 
+  summarise(infected = sum(infected),
+            disease = sum(disease)) %>% 
+  ungroup() %>% 
+  pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "count") %>% 
+  left_join(data %>%
+            group_by(time_calendar, month, rate) %>%
+            summarise(across(c("infected", "disease"), sum, na.rm = TRUE)) %>%
+            ungroup() %>%
+            pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "sum")) %>%
+  mutate(proportion = (count/sum)*100) %>% 
+  filter(type == ind) %>% 
+  plot_ly() %>%
+  add_trace(x = ~time_calendar,
+            y = ~proportion,
+            split = ~age,
+            color = ~age, 
+            colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"),
+            legendgroup = ~age,
+            type = "bar",
+            showlegend = TRUE) %>% 
+  layout(xaxis = list(title = "Calendar Month",
+                      range = list(37, 120),
+                      tickvals = seq(37, 120, 3),
+                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
+                      tickmode = "array",
+                      tickangle = -45),
+         yaxis = list(title = "Proportion"),
+         legend = list(title = list(text = "Age Group")),
+         barmode = "stack",
+         shapes = lockdown)
+}
+
+plot_rate <- function(data, max = c(), tick =c(), ind = c("infected", "disease")){
+  one %>% 
+  select(-time) %>% 
+  mutate(age = case_when(time_birth  < 12 ~ "<1",
+                         time_birth >= 12 & time_birth  <= 48 ~ "1-4")) %>%
+  group_by(time_calendar, month, rate, age) %>% 
+  summarise(infected = sum(infected),
+            disease = sum(disease)) %>% 
+  ungroup() %>% 
+  pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "count") %>%
+  left_join(population) %>% 
+  mutate(rate = (count/population)*100000) %>% 
+  # visualise
+  filter(type == ind) %>% 
+  plot_ly() %>%
+  add_trace(
+    x = ~time_calendar,
+    y = ~rate,
+    split = ~age,
+    colour = ~age,
+    type = "scatter",
+    mode = "line",
+    text = ~month
+  ) %>%
+  layout(xaxis = list(title = "Calendar month",
+                      range = list(37, 120),
+                      tickvals = seq(37, 120, 3),
+                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
+                      tickmode = "array",
+                      tickangle = -45),
+         yaxis = list(title = "Rate (per 100,000)",
+                      range = list(0, max),
+                      tickmode = "linear",
+                      tick0 = 0,
+                      dtick = tick,
+                      tickformat = "digits",
+                      side = "left"),
+         shapes = lockdown)
+}
+
 ```
 
 # Immunity
 
 **infection history in mothers**
-```{r women_prop, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+```{r women_prop_rate, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
 # plot infection history proportions
-readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_prefitting.rds") %>%
+ggpubr::ggarrange(readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_prefitting.rds") %>%
+                    filter(time <= 12*70, time > 12*60) %>%
+                    ggplot() +
+                    geom_bar(aes(x = time, y = proportion, fill = infection), position = "fill", stat = "identity") +
+                    scale_fill_manual(values = c("lightgrey", "darkgrey", viridis(24))) +
+                    scale_x_continuous(breaks = seq(1, 901, 6), labels = c(rep(c("January", "July"), 75), "January")) +
+                    theme_bw() +
+                    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+                    labs(x = "Time",
+                         y = "Proportion",
+                         fill = "Infection Status"),
+                  readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_prefitting_mobility.rds") %>%
+                    filter(time <= 12*70, time > 12*60) %>%
+                    ggplot() +
+                    geom_bar(aes(x = time, y = proportion, fill = infection), position = "fill", stat = "identity") +
+                    scale_fill_manual(values = c("lightgrey", "darkgrey", viridis(24))) +
+                    scale_x_continuous(breaks = seq(1, 901, 6), labels = c(rep(c("January", "July"), 75), "January")) +
+                    theme_bw() +
+                    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+                    labs(x = "Time",
+                         y = "Proportion",
+                         fill = "Infection Status"),
+                  readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_prefitting_scot.rds") %>%
+                    filter(time <= 12*70, time > 12*60) %>%
+                    ggplot() +
+                    geom_bar(aes(x = time, y = proportion, fill = infection), position = "fill", stat = "identity") +
+                    scale_fill_manual(values = c("lightgrey", "darkgrey", viridis(24))) +
+                    scale_x_continuous(breaks = seq(1, 901, 6), labels = c(rep(c("January", "July"), 75), "January")) +
+                    theme_bw() +
+                    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+                    labs(x = "Time",
+                         y = "Proportion",
+                         fill = "Infection Status"),
+                  labels = c("original", "mobility", "scotland"),
+                  nrow = 1)
+```
+
+```{r women_prop_shape, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+# plot infection history proportions
+readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_prefitting_scot.rds") %>%
   filter(time <= 12*70, time > 12*60) %>%
   ggplot() +
   geom_bar(aes(x = time, y = proportion, fill = infection), position = "fill", stat = "identity") +
@@ -256,7 +440,97 @@ readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_p
 ```
 
 **immunity split in babies**
-```{r immunity_split, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+```{r immunity_split_rate, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+# plot immunity split
+ggpubr::ggarrange(readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_prefitting.rds") %>% 
+                  filter(time <= 12*70, time > 12*60) %>% 
+                  mutate(month = factor(month, levels = month.abb)) %>% 
+                  filter(infection != "susceptible_naive") %>% 
+                  mutate(level = as.factor(case_when(infection %in% str_c(rep("I", 6), 1:6) ~ 1,
+                                                     infection %in% str_c(rep("I", 9), 7:15) ~ 2,
+                                                     infection %in% str_c(rep("I", 9), 16:24) ~ 3,
+                                                     infection == "susceptible_reinf" ~ 4))) %>% 
+                  group_by(time, rate, month, level) %>% 
+                  summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
+                  ungroup() %>% 
+                  mutate(time = rep(1:(12*10), each = 4)) %>% 
+                  # combining with birth data
+                  select(-count) %>% 
+                  left_join(birth_data %>% select(month, births, time)) %>% 
+                  mutate(susceptible = proportion * births) %>%
+                  mutate(level = factor(level, levels = c("1", "2", "3", "4", "total"), labels = c("1 (high)", "2", "3", "4 (low)", "total"))) %>% 
+                  ggplot() +
+                  geom_bar(aes(x = time, y = proportion, fill = level), position = "fill", stat = "identity") +
+                  geom_vline(xintercept = c(12*5+3, 12*6+3), linetype = "dashed", color = "red") +
+                  scale_fill_manual(values = viridis(4)) +
+                  scale_x_continuous(breaks = seq(1, 120, 3), 
+                                     labels = rep(c("Jan", "Apr", "Jul", "Oct"), 10)) +
+                  theme_bw() +
+                  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+                  labs(x = "Calendar Month",
+                       y = "Proportion",
+                       fill = "Immunity Level"),
+                  readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_prefitting_mobility.rds") %>% 
+                  filter(time <= 12*70, time > 12*60) %>% 
+                  mutate(month = factor(month, levels = month.abb)) %>% 
+                  filter(infection != "susceptible_naive") %>% 
+                  mutate(level = as.factor(case_when(infection %in% str_c(rep("I", 6), 1:6) ~ 1,
+                                                     infection %in% str_c(rep("I", 9), 7:15) ~ 2,
+                                                     infection %in% str_c(rep("I", 9), 16:24) ~ 3,
+                                                     infection == "susceptible_reinf" ~ 4))) %>% 
+                  group_by(time, rate, month, level) %>% 
+                  summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
+                  ungroup() %>% 
+                  mutate(time = rep(1:(12*10), each = 4)) %>% 
+                  # combining with birth data
+                  select(-count) %>% 
+                  left_join(birth_data %>% select(month, births, time)) %>% 
+                  mutate(susceptible = proportion * births) %>%
+                  mutate(level = factor(level, levels = c("1", "2", "3", "4", "total"), labels = c("1 (high)", "2", "3", "4 (low)", "total"))) %>% 
+                  ggplot() +
+                  geom_bar(aes(x = time, y = proportion, fill = level), position = "fill", stat = "identity") +
+                  geom_vline(xintercept = c(12*5+3, 12*6+3), linetype = "dashed", color = "red") +
+                  scale_fill_manual(values = viridis(4)) +
+                  scale_x_continuous(breaks = seq(1, 120, 3), 
+                                     labels = rep(c("Jan", "Apr", "Jul", "Oct"), 10)) +
+                  theme_bw() +
+                  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+                  labs(x = "Calendar Month",
+                       y = "Proportion",
+                       fill = "Immunity Level"),
+                  readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_rate_prefitting_scot.rds") %>% 
+                  filter(time <= 12*70, time > 12*60) %>% 
+                  mutate(month = factor(month, levels = month.abb)) %>% 
+                  filter(infection != "susceptible_naive") %>% 
+                  mutate(level = as.factor(case_when(infection %in% str_c(rep("I", 6), 1:6) ~ 1,
+                                                     infection %in% str_c(rep("I", 9), 7:15) ~ 2,
+                                                     infection %in% str_c(rep("I", 9), 16:24) ~ 3,
+                                                     infection == "susceptible_reinf" ~ 4))) %>% 
+                  group_by(time, rate, month, level) %>% 
+                  summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
+                  ungroup() %>% 
+                  mutate(time = rep(1:(12*10), each = 4)) %>% 
+                  # combining with birth data
+                  select(-count) %>% 
+                  left_join(birth_data %>% select(month, births, time)) %>% 
+                  mutate(susceptible = proportion * births) %>%
+                  mutate(level = factor(level, levels = c("1", "2", "3", "4", "total"), labels = c("1 (high)", "2", "3", "4 (low)", "total"))) %>% 
+                  ggplot() +
+                  geom_bar(aes(x = time, y = proportion, fill = level), position = "fill", stat = "identity") +
+                  geom_vline(xintercept = c(12*5+3, 12*6+3), linetype = "dashed", color = "red") +
+                  scale_fill_manual(values = viridis(4)) +
+                  scale_x_continuous(breaks = seq(1, 120, 3), 
+                                     labels = rep(c("Jan", "Apr", "Jul", "Oct"), 10)) +
+                  theme_bw() +
+                  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+                  labs(x = "Calendar Month",
+                       y = "Proportion",
+                       fill = "Immunity Level"),
+                  labels = c("original", "mobility", "scotland"),
+                  nrow = 1)
+```
+
+```{r immunity_split_shape, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
 # plot immunity split
 immunity_split %>%
   mutate(level = factor(level, levels = c("1", "2", "3", "4", "total"), labels = c("1 (high)", "2", "3", "4 (low)", "total"))) %>% 
@@ -300,89 +574,38 @@ plot_ly(x = ~Day,
 
 **monthly first infection**
 ```{r inf, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
-manipulateWidget::combineWidgets(plot_curve(output, max = 400000, tick = 50000, ind = "infected"),
-                                 plot_curve(linear, max = 400000, tick = 50000, ind = "infected"),
-                                 plot_curve(exponential, max = 400000, tick = 50000, ind = "infected"),
+manipulateWidget::combineWidgets(plot_curve(one, max = 20000, tick = 2000, ind = "infected"),
+                                 plot_curve(two, max = 20000, tick = 2000, ind = "infected"),
+                                 plot_curve(three, max = 20000, tick = 2000, ind = "infected"),
                                  nrow = 1)
 ```
 
 **monthly first infection by immunity level (sub-analysis of above)**
-```{r inf_immunity, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+```{r inf_immunity, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
 # plot infection epidemic curve over time by immunity level
-output %>% 
-  group_by(time_calendar, month, rate, level) %>% 
-  summarise(across(c("susceptible", "infected", "disease"), sum, na.rm = TRUE)) %>% 
-  ungroup() %>% 
-  plot_ly() %>% 
-  add_trace(
-    x = ~time_calendar,
-    y = ~infected,
-    type = "scatter",
-    mode = "line",
-    split = ~level,
-    color = ~level, 
-    colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"),
-    text = ~month,
-    hovertemplate = paste('<b>Month</b>: %{text}',
-                          '<br><b>Count</b>: %{y}',
-                          '<extra></extra>')
-  ) %>% 
-  layout(xaxis = list(title = "Calendar month",
-                      range = list(37, 120),
-                      tickvals = seq(37, 120, 3),
-                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
-                      tickmode = "array",
-                      tickangle = -45),
-         yaxis = list(title = "Infection Count",
-                      range = list(0, 210000),
-                      tickmode = "linear",
-                      tick0 = 0,
-                      dtick = 10000, 
-                      tickformat = "digits"),
-         legend = list(title = list(text = "Immunity Level")),
-         shapes = lockdown)
+manipulateWidget::combineWidgets(plot_split(one, max = 20000, tick = 2000, ind = "infected"),
+                                 plot_split(two, max = 20000, tick = 2000, ind = "infected"),
+                                 plot_split(three, max = 20000, tick = 2000, ind = "infected"),
+                                 nrow = 1,
+                                 title = "Infection Count")
 ```
 
 **proportion of age groups contributing to monthly cases of infection**
-```{r inf_age, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+```{r inf_age, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
 # plot age distribution of infection over time
-output %>% 
-  select(-time) %>% 
-  pivot_longer(cols = c("<6", "6-12", "12-24", "24-36"), names_to = "age", values_to = "value") %>%
-  mutate(age = factor(age, levels = c("<6", "6-12", "12-24", "24-36"))) %>% 
-  filter(value == 1) %>% 
-  select(-value) %>% 
-  group_by(time_calendar, month, rate, age) %>% 
-  summarise(infected = sum(infected),
-            disease = sum(disease)) %>% 
-  ungroup() %>% 
-  pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "count") %>% 
-  left_join(output %>%
-            group_by(time_calendar, month, rate) %>%
-            summarise(across(c("infected", "disease"), sum, na.rm = TRUE)) %>%
-            ungroup() %>%
-            pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "sum")) %>%
-  mutate(proportion = (count/sum)*100) %>% 
-  filter(type == "infected") %>% 
-  plot_ly() %>%
-  add_trace(x = ~time_calendar,
-            y = ~proportion,
-            split = ~age,
-            color = ~age, 
-            colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"),
-            legendgroup = ~age,
-            type = "bar",
-            showlegend = TRUE) %>% 
-  layout(xaxis = list(title = "Calendar Month",
-                      range = list(37, 120),
-                      tickvals = seq(37, 120, 3),
-                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
-                      tickmode = "array",
-                      tickangle = -45),
-         yaxis = list(title = "Proportion"),
-         legend = list(title = list(text = "Age Group")),
-         barmode = "stack",
-         shapes = lockdown)
+manipulateWidget::combineWidgets(plot_bar(one, ind = "infected"),
+                                 plot_bar(two, ind = "infected"),
+                                 plot_bar(three, ind = "infected"),
+                                 nrow = 1)
+```
+
+**infection rate**
+```{r inf_rate, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+# plot infection rate per 100,000
+manipulateWidget::combineWidgets(plot_rate(one, max = 16000, tick = 2000, ind = "infected"),
+                                 plot_rate(two, max = 16000, tick = 2000, ind = "infected"),
+                                 plot_rate(three, max = 16000, tick = 2000, ind = "infected"),
+                                 nrow = 1)
 ```
 
 # Disease
@@ -390,88 +613,35 @@ output %>%
 **monthly first occurrence of disease**
 ```{r dis, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
 # plot disease epidemic curve over time
-manipulateWidget::combineWidgets(plot_curve(output, max = 150000, tick = 10000, ind = "disease"),
-                                 plot_curve(linear, max = 150000, tick = 10000, ind = "disease"),
-                                 plot_curve(exponential, max = 150000, tick = 10000, ind = "disease"),
+manipulateWidget::combineWidgets(plot_curve(one, max = 6000, tick = 1000, ind = "disease"),
+                                 plot_curve(two, max = 6000, tick = 1000, ind = "disease"),
+                                 plot_curve(three, max = 6000, tick = 1000, ind = "disease"),
                                  nrow = 1)
 ```
 
 **monthly first occurrence of disease by immunity level (sub-analysis of above)**
-```{r dis_immunity, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+```{r dis_immunity, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
 # plot disease epidemic curve over time by immunity level
-output %>%
-  group_by(time_calendar, month, rate, level) %>%
-  summarise(across(c("susceptible", "infected", "disease"), sum, na.rm = TRUE)) %>%
-  ungroup() %>%
-  plot_ly() %>%
-  add_trace(
-    x = ~time_calendar,
-    y = ~disease,
-    type = "scatter",
-    mode = "line",
-    split = ~level,
-    color = ~level,
-    colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"),
-    text = ~month,
-    hovertemplate = paste('<b>Month</b>: %{text}',
-                          '<br><b>Count</b>: %{y}',
-                          '<extra></extra>')
-  ) %>%
-  layout(xaxis = list(title = "Calendar month",
-                      range = list(37, 120),
-                      tickvals = seq(37, 120, 3),
-                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
-                      tickmode = "array",
-                      tickangle = -45),
-         yaxis = list(title = "Infection Count",
-                      range = list(0, 100000),
-                      tickmode = "linear",
-                      tick0 = 0,
-                      dtick = 5000,
-                      tickformat = "digits"),
-         legend = list(title = list(text = "Immunity Level")),
-         shapes = lockdown)
+manipulateWidget::combineWidgets(plot_split(one, max = 10000, tick = 1000, ind = "disease"),
+                                 plot_split(two, max = 10000, tick = 1000, ind = "disease"),
+                                 plot_split(three, max = 10000, tick = 1000, ind = "disease"),
+                                 nrow = 1)
 ```
 
 **proportion of age groups contributing to monthly cases of disease**
-```{r dis_age, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+```{r dis_age, eval=FALSE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
 # plot age distribution of disease over time
-output %>%
-  select(-time) %>%
-  pivot_longer(cols = c("<6", "6-12", "12-24", "24-36"), names_to = "age", values_to = "value") %>%
-  mutate(age = factor(age, levels = c("<6", "6-12", "12-24", "24-36"))) %>%
-  filter(value == 1) %>%
-  select(-value) %>%
-  group_by(time_calendar, month, rate, age) %>%
-  summarise(infected = sum(infected),
-            disease = sum(disease)) %>%
-  ungroup() %>%
-  pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "count") %>%
-  left_join(output %>%
-              group_by(time_calendar, month, rate) %>%
-              summarise(across(c("infected", "disease"), sum, na.rm = TRUE)) %>%
-              ungroup() %>%
-              pivot_longer(cols = c("infected", "disease"), names_to = "type", values_to = "sum")) %>%
-  mutate(proportion = (count/sum)*100) %>%
-  filter(type == "disease") %>%
-  plot_ly() %>%
-  add_trace(x = ~time_calendar,
-            y = ~proportion,
-            split = ~age,
-            color = ~age,
-            colors = c("#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"),
-            legendgroup = ~age,
-            type = "bar",
-            showlegend = TRUE) %>%
-  layout(xaxis = list(title = "Calendar Month",
-                      range = list(37, 120),
-                      tickvals = seq(37, 120, 3),
-                      ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
-                      tickmode = "array",
-                      tickangle = -45),
-         yaxis = list(title = "Proportion"),
-         legend = list(title = list(text = "Age Group")),
-         barmode = "stack",
-         shapes = lockdown)
+manipulateWidget::combineWidgets(plot_bar(one, ind = "disease"),
+                                 plot_bar(two, ind = "disease"),
+                                 plot_bar(three, ind = "disease"),
+                                 nrow = 1)
+```
 
+**disease rate**
+```{r dis_rate, eval=TRUE, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+# plot disease rate per 100,000
+manipulateWidget::combineWidgets(plot_rate(one, max = 10000, tick = 2000, ind = "disease"),
+                                 plot_rate(two, max = 10000, tick = 2000, ind = "disease"),
+                                 plot_rate(three, max = 10000, tick = 2000, ind = "disease"),
+                                 nrow = 1)
 ```

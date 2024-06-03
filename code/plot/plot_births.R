@@ -6,45 +6,6 @@ library(plotly)
 library(viridisLite)
 library(stringr)
 
-# load data
-# births <- readRDS("./output/data/births.rds")
-
-# plot waning
-waning <- as.data.frame(matrix(NA, 12*3, 3))
-colnames(waning) <- c("time", "month", "waning")
-waning %>%
-  mutate(time = 1:36,
-         month = rep(month.abb, 3),
-         waning = case_when(time <= 6 ~ 1,
-                            time > 6 & time <= 12 ~ 0.5,
-                            time > 12 & time <= 24 ~ 0.2,
-                            time > 24 ~ 0)) %>%
-  ggplot() +
-  geom_line(aes(x = time, y = waning)) +
-  scale_y_continuous(breaks = seq(0, 1, 0.2)) +
-  scale_x_continuous(breaks = c(1, 6, 12, 24, 36)) +
-  theme_bw() +
-  labs(x = "Months",
-       y = "Waning (%)")
-
-# plot aging
-aging <- as.data.frame(matrix(NA, 12*3, 3))
-colnames(aging) <- c("time", "month", "aging")
-aging %>%
-  mutate(time = 1:36,
-         month = rep(month.abb, 3),
-         aging = case_when(time <= 6 ~ 0,
-                           time > 6 & time <= 12 ~ 0.5,
-                           time > 12 & time <= 24 ~ 0.8,
-                           time > 24 ~ 1)) %>%
-  ggplot() +
-  geom_line(aes(x = time, y = aging)) +
-  scale_y_continuous(breaks = seq(0, 1, 0.2)) +
-  scale_x_continuous(breaks = c(1, 6, 12, 24, 36)) +
-  theme_bw() +
-  labs(x = "Months",
-       y = "Aging (%)")
-
 # plot rate of exposure
 plot_rate <- function(data){
   fig <- plot_ly() %>%

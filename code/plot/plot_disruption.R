@@ -9,13 +9,13 @@ library(viridisLite)
 # load data
 women_prop <- readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_prop.rds")
 
-births_year <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_year.rds")
-births_age <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_age.rds")
-births_age_month <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_age_month.rds")
+births_year <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/disruption/births_year.rds")
+births_age <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/disruption/births_age.rds")
+births_age_month <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/disruption/births_age_month.rds")
 
-births_year_disrupt <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_year_disrupt.rds")
-births_age_disrupt <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_age_disrupt.rds")
-births_age_month_disrupt <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/births_age_month_disrupt.rds")
+births_year_disrupt <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/disruption/births_year_disrupt.rds")
+births_age_disrupt <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/disruption/births_age_disrupt.rds")
+births_age_month_disrupt <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/disruption/births_age_month_disrupt.rds")
 
 # -------------------------------------------------------------------------
 
