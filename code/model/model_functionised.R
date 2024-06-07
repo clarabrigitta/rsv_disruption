@@ -183,17 +183,17 @@ for(n in 1:nrow(model_continuous_births)){
   # explore changing the shape of waning and aging - choose one of the options.
   # option 1: step-wise
   # introduce waning immunity to probability of infection
-  mutate(waning = case_when(time_birth <= 6 ~ 1,
-                            time_birth > 6 & time_birth <= 12 ~ 0.5,
-                            time_birth > 12 & time_birth <= 24 ~ 0.2,
-                            time_birth > 24 ~ 0),
-         prob_inf = 1 - ((1 - prob_inf) * waning)) %>%
-    # introduce aging to probability of disease
-    mutate(aging = case_when(time_birth <= 6 ~ 1,
-                             time_birth > 6 & time_birth <= 12 ~ 0.5,
-                             time_birth > 12 & time_birth <= 24 ~ 0.2,
-                             time_birth > 24 ~ 0),
-           prob_dis = prob_dis * aging) %>%
+  # mutate(waning = case_when(time_birth <= 6 ~ 1,
+  #                           time_birth > 6 & time_birth <= 12 ~ 0.5,
+  #                           time_birth > 12 & time_birth <= 24 ~ 0.2,
+  #                           time_birth > 24 ~ 0),
+  #        prob_inf = 1 - ((1 - prob_inf) * waning)) %>%
+  #   # introduce aging to probability of disease
+  #   mutate(aging = case_when(time_birth <= 6 ~ 1,
+  #                            time_birth > 6 & time_birth <= 12 ~ 0.5,
+  #                            time_birth > 12 & time_birth <= 24 ~ 0.2,
+  #                            time_birth > 24 ~ 0),
+  #          prob_dis = prob_dis * aging) %>%
     # -------------------------------------------------------------------------
   # # option 2: linear
   # # introduce waning immunity to probability of infection
@@ -202,13 +202,13 @@ for(n in 1:nrow(model_continuous_births)){
   # # introduce aging to probability of disease
   # mutate(aging = 1-time_birth/36,
   #        prob_dis = prob_dis * aging) %>%
-  # # option 3: exponential
-  # # introduce waning immunity to probability of infection
-  # mutate(waning = 1*0.9^time_birth,
-  #      prob_inf = 1 - ((1 - prob_inf) * waning)) %>%
-  # # introduce aging to probability of disease
-  # mutate(aging = 1*0.9^time_birth,
-  #        prob_dis = prob_dis * aging) %>%
+  # option 3: exponential
+  # introduce waning immunity to probability of infection
+  mutate(waning = 1*0.9^time_birth,
+         prob_inf = 1 - ((1 - prob_inf) * waning)) %>%
+  # introduce aging to probability of disease
+  mutate(aging = 1*0.9^time_birth,
+         prob_dis = prob_dis * aging) %>%
   # determine initial number of infected and disease
   mutate(infected = susceptible * rate * prob_inf,
          disease = infected * prob_dis) %>% 
