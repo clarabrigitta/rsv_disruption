@@ -42,8 +42,8 @@ three <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/pr
 
 # load mobility data
 mobility <- read.csv(file = "/Users/lsh2301561/Desktop/rsv_disruption/data/changes-visitors-covid.csv") %>%
-  filter(Code == "GBR") %>% 
-  mutate(Day = as.Date(Day, format = "%Y-%m-%d")) %>% 
+  filter(Code == "GBR") %>%
+  mutate(Day = as.Date(Day, format = "%Y-%m-%d")) %>%
   pivot_longer(cols = `retail_and_recreation`:`workplaces`, names_to = "category", values_to = "value")
 
 # load birth data
@@ -341,7 +341,7 @@ plot_bar <- function(data, ind = c("infected", "disease")){
 }
 
 plot_rate <- function(data, max = c(), tick =c(), ind = c("infected", "disease")){
-  one %>% 
+  data %>% 
   select(-time) %>% 
   mutate(age = case_when(time_birth  < 12 ~ "<1",
                          time_birth >= 12 & time_birth  <= 48 ~ "1-4")) %>%
