@@ -89,7 +89,8 @@ women.long <- women %>%
   mutate(infection = str_remove(infection, "I"),
          infection = replace(infection, infection == "susceptible_reinf", 25)) %>% 
   filter(infection %in% c(1:25)) %>% 
-  mutate(infection = as.numeric(infection))
+  mutate(infection = as.numeric(infection)) %>% 
+  left_join(readRDS("./output/data/dates.rds"))
 
 # save long model output
 saveRDS(women.long, file = "./output/data/women/women_rate_functionised.rds")
@@ -118,32 +119,32 @@ birth_data <- read_excel("./data/births-time-series-22-bt.3.xlsx", skip = 3) %>%
   rename(year = Year) %>% 
   pivot_longer(cols = `Jan`:`Dec`, names_to = "month", values_to = "births") %>% 
   filter(year >= 2012, year <= 2021) %>% 
-  mutate(month = rep(month.abb, 10),
+  mutate(year = as.numeric(year),
+         month = rep(month.abb, 10),
          year_month = paste(year, month, sep = "_"),
          date = as.Date(as.yearmon(`year_month`, "%Y_%b"))) %>%
-  select(year, month, date, births) %>% 
-  mutate(time = 1:nrow(.))
+  select(year, month, date, births)
 
 # create reference table for rates to join
 rate_reference <- readRDS("./output/data/women/women_rate_functionised.rds") %>% 
-  select(time, month, rate, infection) %>% 
+  select(time, month, year, yearmon, date, rate, infection) %>% 
   rename(level = infection) %>% 
   filter(time <= 12*75, time > 12*60) %>% 
   mutate(month = factor(month, levels = month.abb),
          time = rep(1:n_distinct(time), each = 25))
 
 # create 10 years of infection history/immunity split
-immunity_split <- readRDS("./output/data/women/women_rate_functionised.rds") %>% 
+immunity_split <- readRDS("./output/data/women/women_rate_functionised.rds") %>%
   filter(time <= 12*70, time > 12*60) %>% 
   mutate(month = factor(month, levels = month.abb)) %>% 
   rename(level = infection) %>% 
-  group_by(time, rate, month, level) %>% 
+  group_by(time, month, year, yearmon, date, rate, level) %>% 
   summarise(across(c("count", "proportion"), sum, na.rm = TRUE)) %>% 
   ungroup() %>% 
   mutate(time = rep(1:(12*10), each = 25)) %>% 
   # combining with birth data
   select(-count) %>% 
-  left_join(birth_data %>% select(month, births, time)) %>% 
+  left_join(birth_data) %>% 
   mutate(susceptible = proportion * births)
 
 # -------------------------------------------------------------------------
