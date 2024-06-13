@@ -40,7 +40,7 @@ data %>%
        y = "Probability")
 
 # plot ratio
-output %>% 
+data %>% 
   select(-time) %>% 
   mutate(age = case_when(time_birth  < 12 ~ "<1",
                          time_birth >= 12 & time_birth  <= 48 ~ "1-4")) %>%
@@ -60,17 +60,17 @@ output %>%
             text = ~yearmon
   ) %>%
   layout(xaxis = list(title = "Calendar month",
-                      # range = list(37, 120),
-                      # tickvals = seq(37, 120, 3),
-                      # ticktext = rep(c("Jan", "Apr", "Jul", "Oct"), 7),
-                      # tickmode = "array",
+                      range = list(37, 216),
+                      tickvals = seq(37, 216, 6),
+                      ticktext = rep(c("Jan", "Jul"), 15),
+                      tickmode = "array",
                       tickangle = -45),
          yaxis = list(title = "Ratio",
-                      # range = list(0, max),
-                      # tickmode = "linear",
-                      # tick0 = 0,
-                      # dtick = tick,
-                      # tickformat = "digits",
+                      range = list(0, 1),
+                      tickmode = "linear",
+                      tick0 = 0,
+                      dtick = 0.2,
+                      tickformat = "digits",
                       side = "left"),
          shapes = lockdown)
 
