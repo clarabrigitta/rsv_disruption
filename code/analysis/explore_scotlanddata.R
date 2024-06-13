@@ -8,15 +8,19 @@ library(plotly)
 library(lubridate)
 
 # load data
+
 # weekly rate of laboratory confirmed cases by age and pathogen
 rate <- read.csv("./data/respiratory_age_20240515.csv") %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d"))
+
 # weekly count of laboratory confirmed cases by age and pathogen
 count <- read.csv("./data/respiratory_scot_20240515.csv") %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d"))
+
 # data on lock down restrictions
 restrict <- read_excel("./data/uk_restrictions.xlsx") %>% 
   mutate(start = as.Date(start))
+
 # scottish population data by age
 population <- read_excel("./data/mid-year-pop-est-22-data.xlsx", sheet = "Table 1", skip = 3) %>% 
   filter(`Area name` == "Scotland",
@@ -27,6 +31,7 @@ population <- read_excel("./data/mid-year-pop-est-22-data.xlsx", sheet = "Table 
   mutate(age = ifelse(age_year == 0, "<1", "1-4")) %>% 
   group_by(age) %>% 
   summarise(population = sum(population))
+
 # scottish birth data by month registered
 births <- read_excel("./data/births-time-series-22-bt.3.xlsx", skip = 3) %>% 
   head(-7) %>% 
@@ -34,13 +39,47 @@ births <- read_excel("./data/births-time-series-22-bt.3.xlsx", skip = 3) %>%
   select(-Total) %>% 
   rename(year = Year) %>% 
   pivot_longer(cols = `Jan`:`Dec`, names_to = "month", values_to = "births") %>% 
-  filter(year >= 2012, year <= 2021) %>% 
+  filter(year >= 2012, year <= 2022) %>% 
   mutate(month = rep(month.abb, 10),
          year_month = paste(year, month, sep = "_"),
          date = as.Date(as.yearmon(`year_month`, "%Y_%b"))) %>%
   select(year, month, date, births) %>% 
   mutate(time = 1:nrow(.))
 
+# extrapolate scottish births
+# scottish birth data by month registered
+births <- read_excel("./data/births-time-series-22-bt.3.xlsx", skip = 3) %>% 
+  rename(Jun = June, Jul = July) %>% 
+  head(-7) %>% 
+  select(1:14) %>% 
+  select(-Total) %>% 
+  rename(year = Year) %>% 
+  pivot_longer(cols = `Jan`:`Dec`, names_to = "month", values_to = "births") %>% 
+  mutate(yearmon = as.yearmon(paste(year, month, sep = "_"), "%Y_%b"),
+         date = as.Date(year_month)) %>%
+  mutate(time = 1:nrow(.))
+
+lm(births~time, data = births)
+  
+ggplot(data.frame(x = c(0, 900)), aes(x = x)) +
+  stat_function(fun = function(x){-5.499*x + 8095.307}) +
+  theme_bw() +
+  labs(x = "Months", y = "Births")
+
+birth_data <- read_excel("./data/births-time-series-22-bt.3.xlsx", skip = 3) %>% 
+  rename(Jun = June, Jul = July) %>% 
+  head(-7) %>% 
+  select(1:14) %>% 
+  select(-Total) %>% 
+  rename(year = Year) %>% 
+  pivot_longer(cols = `Jan`:`Dec`, names_to = "month", values_to = "births") %>% 
+  filter(year >= 2012) %>% 
+  mutate(year = as.numeric(year),
+         yearmon = as.yearmon(paste(year, month, sep = "_"), "%Y_%b"),
+         date = as.Date(yearmon)) %>% 
+  right_join(rate_reference %>% select(-c(rate, level)) %>% distinct()) %>%
+  # extrapolate births beyong 2022 (linear regression)
+  mutate(births = ifelse(is.na(births), -5.499*time + 8095.307, births))
 
 # percentage of rate per age group
 test <- left_join(filter(rate, Pathogen == "Respiratory syncytial virus"), rate %>% 
