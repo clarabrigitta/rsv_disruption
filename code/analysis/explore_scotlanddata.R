@@ -56,13 +56,14 @@ births <- read_excel("./data/births-time-series-22-bt.3.xlsx", skip = 3) %>%
   rename(year = Year) %>% 
   pivot_longer(cols = `Jan`:`Dec`, names_to = "month", values_to = "births") %>% 
   mutate(yearmon = as.yearmon(paste(year, month, sep = "_"), "%Y_%b"),
-         date = as.Date(year_month)) %>%
+         date = as.Date(yearmon)) %>%
+  filter(year >= 2012) %>% 
   mutate(time = 1:nrow(.))
 
 lm(births~time, data = births)
   
 ggplot(data.frame(x = c(0, 900)), aes(x = x)) +
-  stat_function(fun = function(x){-5.499*x + 8095.307}) +
+  stat_function(fun = function(x){-8.131*x + 4903.856}) +
   theme_bw() +
   labs(x = "Months", y = "Births")
 
