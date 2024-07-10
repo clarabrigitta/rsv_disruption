@@ -105,8 +105,6 @@ save_data <- list(women_mat, empty, rate_vector, population, level)
 
 model_function <- function(lambda, theta, omega, alpha, stored_data){
   
-  print(Sys.time())
-  
   # matrix key:
   # 1 = time
   # 2 = rate
@@ -142,8 +140,6 @@ model_function <- function(lambda, theta, omega, alpha, stored_data){
   
   # calculate number of babies born with an immunity profile based on births and proportion
   babies[, 3:27] <- babies[, 3:27] * babies[, 28]
-  
-  print(Sys.time())
   
   ## model babies
   # apply lambda to rate vector
@@ -185,8 +181,6 @@ model_function <- function(lambda, theta, omega, alpha, stored_data){
             
           })
   
-  print(Sys.time())
-  
   data <- do.call(rbind, data)[, c(1, 29, 33)] # unlist map output
   data <- cbind(data, age = 0)
   data[data[, 2] > 11, 4] <- 1 # 0 = <1, 1 = 1-4 
@@ -198,9 +192,7 @@ model_function <- function(lambda, theta, omega, alpha, stored_data){
   data[, 4] <- data[, 2]/stored_data[[4]][1]*100000 # calculate rates for 1-4
   data <- cbind(data[, 3:4],
                 time = 1:263)
-  data <- rbind(data[58:149, c(1, 3)], data[58:149, 2:3]) # selecting times to match Scottish rate data
-  
-  print(Sys.time())
+  data <- rbind(data[58:149, 2:3], data[58:149, c(1, 3)]) # selecting times to match Scottish rate data
   
   return(data)
   
