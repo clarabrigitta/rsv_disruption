@@ -9,7 +9,7 @@ colnames(dates) <- c("time", "month", "year", "yearmon", "date")
 dates <- dates %>% 
   mutate(time = 1:nrow(dates),
          month = rep(month.abb, nrow(dates)/12),
-         year = rep(c(1955:(1955+(nrow(dates)/12)-1)), each =12),
+         year = rep(c(2000:(2000+(nrow(dates)/12)-1)), each =12),
          yearmon = as.yearmon(paste(year, month, sep = "_"), "%Y_%b"),
          date = as.Date(yearmon))
 
