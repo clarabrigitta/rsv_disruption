@@ -103,7 +103,7 @@ save_data <- list(women_mat, empty, rate_vector, population, level)
 
 # beginning of model function
 
-model_function <- function(lambda, theta, omega, alpha, stored_data){
+model_function <- function(lambda, theta, omega, alpha, stored_data, uni){
   
   # matrix key:
   # 1 = time
@@ -112,7 +112,8 @@ model_function <- function(lambda, theta, omega, alpha, stored_data){
   # 29 = births
   women <- stored_data[[1]]
   
-  # subject rate to disruption factor lambda 
+  # subject rate to universal scaling factor uni and disruption factor lambda 
+  women[, 2] <-  women[, 2] * uni
   women[243:255, 2] <-  women[243:255, 2] * lambda
   
   # initial state
@@ -142,8 +143,6 @@ model_function <- function(lambda, theta, omega, alpha, stored_data){
   babies[, 3:27] <- babies[, 3:27] * babies[, 28]
   
   ## model babies
-  # apply lambda to rate vector
-  # stored_data[[4]][99:111] <- stored_data[[4]][99:111] * lambda
   # matrix key:
   # 1 = time_calendar
   # 2 = rate
@@ -154,6 +153,10 @@ model_function <- function(lambda, theta, omega, alpha, stored_data){
   # 31 = waning
   # 32 = infected
   # 33 = disease
+  
+  # apply universal scaling factors and lambda to rate vector
+  stored_data[[3]] <- stored_data[[3]] * uni
+  stored_data[[3]][99:111] <- stored_data[[3]][99:111] * lambda
   
   data <- map(1:nrow(babies),
           function(x){
