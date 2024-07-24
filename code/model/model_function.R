@@ -149,8 +149,8 @@ model_function <- function(lambda, theta, omega, alpha, stored_data, uni){
   # 3 - 27 = immunity levels
   # 28 = births
   # 29 = time_birth
-  # 30 = aging
-  # 31 = waning
+  # 30 = waning
+  # 31 = aging
   # 32 = infected
   # 33 = disease
   
@@ -161,7 +161,7 @@ model_function <- function(lambda, theta, omega, alpha, stored_data, uni){
   data <- map(1:nrow(babies),
           function(x){
             
-            subdata <- empty
+            subdata <- stored_data[[2]]
             subdata[1, 1:28] <- babies[x, ]
             subdata[, 1] <- x:(x+12*4-1)
             subdata[, 2] <- stored_data[[3]][x:(x+12*4-1)]
