@@ -42,7 +42,7 @@ aging <- aging %>%
                            time > 12 & time <= 24 ~ 0.8,
                            time > 24 ~ 1))
 
-aging_linear <- function(x){1-(1-x/36)}
+aging_linear <- function(x){-1/36*x + 1}
 aging_exponential <- function(x){1-(1*0.9^x)}
 
 ggplot(data.frame(x = c(0, 36)), aes(x = x)) + 
