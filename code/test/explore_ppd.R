@@ -43,14 +43,15 @@ lambda_fig <- grid.arrange(lambda_1, lambda_2, ncol = 2, nrow = 1)
 
 n_sim <- 100
 
-theta_prior <- runif(n_sim, 0, 1)
+theta_prior <- runif(n_sim, -5, 0)
 
 hist(theta_prior)
+hist(exp(theta_prior))
 
 theta_prior_sim <- list()
 
 for(i in 1:n_sim){
-  theta_prior_sim[[i]] <- model_function(lambda = 0, theta = theta_prior[i], omega = -1/48, alpha = -1/48, stored_data = save_data)
+  theta_prior_sim[[i]] <- model_function(lambda = 0, theta = exp(theta_prior[i]), omega = -1/48, alpha = -1/48, stored_data = save_data)
 }
 
 # plot for <1 year
