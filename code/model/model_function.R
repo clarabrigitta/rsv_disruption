@@ -17,7 +17,7 @@ n_burn <- 20 # burn-in period before disruption
 dates <- as.data.frame(matrix(NA, 12*(rep+4), 6))
 colnames(dates) <- c("time", "month", "month_num", "year", "yearmon", "date")
 
-dates <- dates %>% 
+dates <- dates %>%
   mutate(time = 1:nrow(dates),
          month = rep(month.abb, nrow(dates)/12),
          month_num = rep(1:12, rep+4),
@@ -29,8 +29,8 @@ dates <- dates %>%
                            month %in% month.abb[4:8] ~ 0,
                            month == month.abb[9] ~ 0.04,
                            month == month.abb[10] ~ 0.08,
-                           month %in% month.abb[11:12] ~ 0.18))) %>% 
-  filter(year >= 2012) %>% 
+                           month %in% month.abb[11:12] ~ 0.18))) %>%
+  filter(year >= 2012) %>%
   mutate(time = 1:n_distinct(time)) %>%
   left_join(data.frame(level = rep(1:25, 264),
                        time = rep(1:264, each = 25)))
@@ -48,8 +48,8 @@ birth_data <- read_excel("./data/births-time-series-22-bt.3.xlsx", skip = 3) %>%
          date = as.Date(yearmon)) %>%
   right_join(dates %>% select(-c(rate, level)) %>% filter(year <= 2029) %>% distinct()) %>%
   # extrapolate births beyond 2022 (linear regression)
-  mutate(births = ifelse(is.na(births), -8.131*time + 4903.856, births)) %>% 
-  select(births) %>% 
+  mutate(births = ifelse(is.na(births), -8.131*time + 4903.856, births)) %>%
+  select(births) %>%
   pull()
 
 # starting matrix for modelling women
@@ -64,7 +64,7 @@ women_mat <- women_mat %>% mutate(month = rep(1:12, rep),
                                                 month == 9 ~ 0.04,
                                                 month == 10 ~ 0.08,
                                                 month == 11 | month == 12 ~ 0.18),
-                              births = 0) %>% 
+                              births = 0) %>%
   select(-month)
 
 women_mat[145:360, "births"] <- birth_data # combining monthly birth data with women matrix
@@ -80,8 +80,8 @@ population <- read_excel("./data/mid-year-pop-est-22-data.xlsx", sheet = "Table 
   pivot_longer(cols = `0`:`4`, names_to = "age_year", values_to = "population") %>%
   mutate(age = ifelse(age_year == 0, "<1", "1-4")) %>%
   group_by(age) %>%
-  summarise(population = sum(population)) %>% 
-  select(population) %>% 
+  summarise(population = sum(population)) %>%
+  select(population) %>%
   pull()
 
 # empty matrix to model babies for 4 years
@@ -96,52 +96,70 @@ rate_vector <- dates %>% select(-level) %>% distinct() %>% select(rate) %>% pull
 # vector of levels
 level <- c(25, 1:24)
 
+# scotland counts
+# weekly rate of laboratory confirmed cases by age and pathogen aggregated to monthly
+count <- read.csv("./data/respiratory_age_20240515.csv") %>%
+  mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d")) %>% 
+  filter(Pathogen == "Respiratory syncytial virus",
+         AgeGroup %in% c("<1 years", "1-4 years")) %>% 
+  rename(age = AgeGroup,
+         rate = RatePer100000) %>%
+  mutate(yearmon = as.yearmon(date)) %>% 
+  group_by(age, yearmon) %>% 
+  summarise(rate = sum(rate)) %>% 
+  ungroup() %>% 
+  # to calculate counts
+  mutate(population = ifelse(age == "<1 years", 47186, 200551),
+         count = rate / 100000 * population) %>% 
+  select(count) %>% 
+  round(digits = 0) %>%
+  as.matrix()
+
 # put all data into a list
-save_data <- list(women_mat, empty, rate_vector, population, level)
+save_data <- list(women_mat, empty, rate_vector, population, level, count)
 
 # -------------------------------------------------------------------------
 
 # beginning of model function
 
-model_function <- function(lambda, theta, omega, alpha, stored_data, uni){
-  
+model_function <- function(lambda, theta, omega, alpha, stored_data){
+
   # matrix key:
   # 1 = time
   # 2 = rate
   # 3 - 28 = infection history status
   # 29 = births
   women <- stored_data[[1]]
-  
-  # subject rate to universal scaling factor uni and disruption factor lambda 
-  women[, 2] <-  women[, 2] * uni
+
+  # subject rate to disruption factor lambda
   women[243:255, 2] <-  women[243:255, 2] * lambda
-  
+
   # initial state
   women[1, 3] <- 1000000
-  
+
   ## model women
   for (row in 3:nrow(women)) {
     # map_dbl(3:nrow(women),
     #     function(x) {})
-    
+
     women[row - 1, 5] <- women[row - 2, 3] * women[row - 2, 2] + women[row - 2, 4] * women[row - 2, 2]
     women[row - 1, 3] <- women[row - 2, 3] - women[row - 2, 3] * women[row - 2, 2]
     women[row - 1, 4] <- women[row - 2, 4] - women[row - 2, 4] * women[row - 2, 2] + women[row - 2, 28]
     women[row, c(6:28, 4)] <- women[row - 1, 5:28]
-    
+
   }
-  
+
   # create link between mothers and babies (infection history/immunity split)
   women <- women[145:360, ] # selecting for 2012-2029 to match time period of birth data
   women[, 1] <- 1:216 # re-labeling time to match birth data
-  
+
   # calculate proportion of women in each infection history status per month
   women[, 3:28] <- women[, 3:28]/1000000
   babies <- women[, -3] # remove susceptible_naive column since negligible in later time steps
-  
+
   # calculate number of babies born with an immunity profile based on births and proportion
   babies[, 3:27] <- babies[, 3:27] * babies[, 28]
-  
+
   ## model babies
   # matrix key:
   # 1 = time_calendar
@@ -153,14 +171,13 @@ model_function <- function(lambda, theta, omega, alpha, stored_data, uni){
   # 31 = aging
   # 32 = infected
   # 33 = disease
-  
-  # apply universal scaling factors and lambda to rate vector
-  stored_data[[3]] <- stored_data[[3]] * uni
+
+  # apply lambda to rate vector
   stored_data[[3]][99:111] <- stored_data[[3]][99:111] * lambda
-  
+
   data <- map(1:nrow(babies),
           function(x){
-            
+
             subdata <- stored_data[[2]]
             subdata[1, 1:28] <- babies[x, ]
             subdata[, 1] <- x:(x+12*4-1)
@@ -170,33 +187,43 @@ model_function <- function(lambda, theta, omega, alpha, stored_data, uni){
                           aging = alpha * subdata[, 29] + 1,
                           infected = 0,
                           disease = 0)
-            
+            subdata[subdata[, 30] < 0, 30] <- 0 # percentage of immunity cannot be below 0
+            subdata[subdata[, 31] < 0, 31] <- 0 # probability of disease cannot be below 0
+            start_inf <- theta * stored_data[[5]] # starting probability of infection given maternal immunity
+            start_inf[start_inf > 1] <- 1 # probability of infection cannot exceed 1
+
             for(month in 2:48){
               subdata[month, 3:27] <- subdata[month - 1, 3:27] # susceptible babies to next time step
-              subdata[month - 1, 3:27] <- subdata[month - 1, 3:27] * subdata[month - 1, 2] * (1 - ((1 - (theta * stored_data[[5]])) * subdata[month - 1, 30])) # calculate number of babies infected in each immunity level
+              subdata[month - 1, 3:27] <- subdata[month - 1, 3:27] * subdata[month - 1, 2] * (1 - ((1 - start_inf) * subdata[month - 1, 30])) # calculate number of babies infected in each immunity level
               subdata[month - 1, 32] <- sum(subdata[month - 1, 3:27]) # total number of infections at that time step
               subdata[month, 3:27] <- subdata[month, 3:27] - subdata[month - 1, 3:27] # deduct infected from susceptible
               subdata[month - 1, 3:27] <- subdata[month - 1, 3:27] * subdata[month - 1, 31] # calculate number of babies that develop disease in each immunity level
               subdata[month - 1, 33] <- sum(subdata[month - 1, 3:27]) # total number of babies that develop disease at that time step
             }
-            
+
             return(subdata)
-            
+
           })
-  
+
   data <- do.call(rbind, data)[, c(1, 29, 33)] # unlist map output
   data <- cbind(data, age = 0)
-  data[data[, 2] > 11, 4] <- 1 # 0 = <1, 1 = 1-4 
+  data[data[, 2] > 11, 4] <- 1 # 0 = <1, 1 = 1-4
   data <- tapply( data[, 3], list(data[, 1],  data[, 4]), sum) # calculate counts of disease per age group per month
+  # data <- data * 0.1
   data <- cbind(data,
                 rate_0 = 0,
                 rate_1 = 0)
   data[, 3] <- data[, 1]/stored_data[[4]][2]*100000 # calculate rates for <1
   data[, 4] <- data[, 2]/stored_data[[4]][1]*100000 # calculate rates for 1-4
-  data <- cbind(data[, 3:4],
+  data <- cbind(data[, 1:2], # 1:2 if count, 3:4 if rate
                 time = 1:263)
   data <- rbind(data[58:149, 2:3], data[58:149, c(1, 3)]) # selecting times to match Scottish rate data
-  
+  data <- cbind(data,
+                count,
+                check = 0)
+  data[data[, 1] < data[, 3], 4] <- 1 # fix model outputs lower than data for binomial distribution
+  data[data[, 4] == 1, 1] <- data[data[, 4] == 1, 3] * 5
+
   return(data)
-  
+
 }
