@@ -209,7 +209,6 @@ model_function <- function(lambda, theta, omega, alpha, stored_data){
   data <- cbind(data, age = 0)
   data[data[, 2] > 11, 4] <- 1 # 0 = <1, 1 = 1-4
   data <- tapply( data[, 3], list(data[, 1],  data[, 4]), sum) # calculate counts of disease per age group per month
-  # data <- data * 0.1
   data <- cbind(data,
                 rate_0 = 0,
                 rate_1 = 0)
