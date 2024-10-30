@@ -91,13 +91,18 @@ test <- left_join(filter(rate, Pathogen == "Respiratory syncytial virus"), rate 
 
 # weekly number of laboratory-confirmed cases by pathogen and flu type in Scotland
 count %>% 
-  filter(Pathogen == "Respiratory syncytial virus") %>%
+  filter(Pathogen == "Respiratory syncytial virus",
+         date >= "2017-01-12") %>%
   ggplot() +
   geom_line(aes(x = date, y = NumberCasesPerWeek, colour = Pathogen)) +
-  scale_x_date(date_breaks = "1 month", date_labels =  "%b %Y") +
+  geom_vline(xintercept = as.numeric(seq(from = as.Date("2016-12-01"), 
+                                         to = as.Date("2024-12-01"), 
+                                         by = "1 year")), linetype = "dashed", color = "black") +
+  scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y") +
   scale_colour_viridis_d(option = "D") +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none") +
   labs(x = "Time",
        y = "Number of Cases (per week)")
 
@@ -113,13 +118,18 @@ plot_ly() %>%
 
 # weekly rate per 100,000 by pathogen, flu type and age group
 rate %>% 
-  filter(Pathogen == "Respiratory syncytial virus") %>%
+  filter(Pathogen == "Respiratory syncytial virus",
+         date >= "2017-01-12") %>%
   ggplot() +
   geom_line(aes(x = date, y = RatePer100000, colour = AgeGroup)) +
-  scale_x_date(date_breaks = "1 month", date_labels =  "%b %Y") +
+  geom_vline(xintercept = as.numeric(seq(from = as.Date("2016-12-01"), 
+                                         to = as.Date("2024-12-01"), 
+                                         by = "1 year")), linetype = "dashed", color = "black") +
+  scale_x_date(date_breaks = "3 month", date_labels =  "%b %Y") +
   scale_colour_viridis_d(option = "H") +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom") +
   labs(x = "Time",
        y = "Rate (per 100,000)",
        colour = "Age Group")
