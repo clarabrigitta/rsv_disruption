@@ -221,7 +221,7 @@ model_function <- function(lambda, theta, omega, alpha, stored_data){
                 count,
                 check = 0)
   data[data[, 1] < data[, 3], 4] <- 1 # fix model outputs lower than data for binomial distribution
-  data[data[, 4] == 1, 1] <- data[data[, 4] == 1, 3] * 5
+  # data[data[, 4] == 1, 1] <- data[data[, 4] == 1, 3] * 5
 
   return(data)
 
