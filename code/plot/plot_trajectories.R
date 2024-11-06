@@ -1,54 +1,65 @@
-traj <- do.call(rbind, traj_allMetropolis) %>% 
-  t()
-cbind(traj, scotland_rate[, 1:2])
-as.data.frame() %>% 
-  pivot_longer(cols = 1:4, names_to = "age", values_to = "count")
+library(dplyr)
+library(zoo)
+library(tidyr)
+library(ggplot2)
 
-ggplot(traj) +
-  geom_line(aes(x = yearmon, y = count, color = "Scottish Data")) +
-  # geom_line(aes(x = yearmon, y = universal, color = "Universal Scaling Factor"), linetype = 2) +
-  # geom_line(aes(x = yearmon, y = guess, color = "Guess"), linetype = 2) +
-  geom_line(aes(x = yearmon, y = model, color = "Model"), linetype = 2) +
-  geom_ribbon(aes(x = yearmon, ymax = upper, ymin = lower), alpha = 0.3, linetype = 0) +
-  labs(x = "Months", y = "Rate (per 100,000)") + 
-  scale_color_discrete(name = "") +
-  theme_classic() +
-  facet_wrap(~age)
+for(paramsampler in c("twoDEzs", "twoMetropolis", "threeDEzs", "threeMetropolis", "fourDEzs", "fourMetropolis", "allDEzs", "allMetropolis")){
+  traj <- do.call(rbind, get(paste0("traj_", paramsampler))) %>% 
+    t() %>% 
+    as.data.frame() %>%
+    bind_cols(scotland_rate[, 1:2]) %>% 
+    pivot_longer(cols = c(1:40000), names_to = "iter", values_to = "count")
+  
+  fig <- ggplot() + 
+    # geom_line(data = traj, aes(x = yearmon, y = count, group = iter), alpha = 0.3, color = "darkgrey") +
+    geom_ribbon
+    geom_line(data = scotland_rate, aes(x = yearmon, y = count), alpha = 0.7, color = "black") +
+    theme(legend.position = "none") +
+    labs(x = "Months", y = "Count") + 
+    theme_classic() +
+    facet_wrap(~age)
+  
+  ggsave(filename = paste0("/Users/lsh2301561/Desktop/rsv_disruption/output/figures/trajectories/", paramsampler, ".png"), plot = fig, width = 12, height = 8, dpi = 300)
+}
 
 # -------------------------------------------------------------------------
 # plots
-# plot scotland vs model rate with 95% credible interval parameter values
-both <- cbind(scotland_rate, 
-              guess = model_function(lambda = 0, theta = 1/25, omega = -1/12, alpha = -1/48, stored_data = save_data)[, 1],
-              model = model_function(lambda = exp(-5.124), theta = 0.051, omega = -0.817, alpha = -0.978, stored_data = save_data)[, 1] * 0.2, # omega and alpha should be negative
-              lower = model_function(lambda = exp(-9.767), theta = 0.010, omega = -0.973, alpha = -0.999, stored_data = save_data)[, 1] * 0.197,
-              upper = model_function(lambda = exp(-1.390), theta = 0.991, omega = -0.035, alpha = -0.855, stored_data = save_data)[, 1] * 0.204)
+# plot data vs mean and 95% interval
+library(HDInterval)
 
-scot_detect <- cbind(scotland_rate,
-                     detection = model_function(lambda = 0, theta = 1/25, omega = -1/12, alpha = -1/48, stored_data = save_data, detect_rate = 0.1)[, 1])
+traj <- do.call(rbind, traj_allDEzs) %>% 
+  as.data.frame() %>% 
+  hdi() %>% 
+  t() %>% 
+  bind_cols(scotland_rate[, c(1, 2, 5)]) %>% 
+  cbind(mean = colMeans(do.call(rbind, traj_allDEzs)))
 
-ggplot(both) +
+ggplot(traj) +
   geom_line(aes(x = yearmon, y = count, color = "Scottish Data")) +
-  # geom_line(aes(x = yearmon, y = universal, color = "Universal Scaling Factor"), linetype = 2) +
-  # geom_line(aes(x = yearmon, y = guess, color = "Guess"), linetype = 2) +
-  geom_line(aes(x = yearmon, y = model, color = "Model"), linetype = 2) +
+  geom_line(aes(x = yearmon, y = mean, color = "Mean"), linetype = 2) +
   geom_ribbon(aes(x = yearmon, ymax = upper, ymin = lower), alpha = 0.3, linetype = 0) +
-  labs(x = "Months", y = "Rate (per 100,000)") + 
+  labs(x = "Months", y = "Count") + 
   scale_color_discrete(name = "") +
   theme_classic() +
   facet_wrap(~age)
 
-ggplot() +
-  geom_line(aes(x = c(1:264), y = save_data[[3]], color = "Original")) +
-  geom_line(aes(x = c(1:264), y = save_data[[3]] * 0.1,, color = "Scaled")) +
-  theme_classic()
+# test plot to compare model with and without binomial fix
+test <- cbind(scotland_rate, 
+              model = data_model[, 1],
+              fixed = data[, 1])
+ggplot(test) +
+  geom_line(aes(x = yearmon, y = count, color = "Scottish Data")) +
+  geom_line(aes(x = yearmon, y = model, color = "Model (no fix)"), linetype = 1) +
+  geom_line(aes(x = yearmon, y = fixed, color = "Model (binomial fix)"), linetype = 1) +
+  labs(x = "Months", y = "Count") + 
+  scale_color_discrete(name = "") +
+  theme_classic() +
+  facet_wrap(~age)
 
-# plot mcmc traces
-plot(out_uni)
-plot(out1)
-plot(out2)
-plot(out3)
-plot(out4)
+# plot mcmc traces and correlation plots
+out <- out_allDEzs
+plot(out)
+correlationPlot(out)
 
 # plot parameter assumptions
 theta <- ggplot(data.frame(x = c(0, 25)), aes(x = x)) + 
@@ -62,7 +73,7 @@ theta <- ggplot(data.frame(x = c(0, 25)), aes(x = x)) +
         plot.title = element_text(size = 14)) +
   labs(title = "Maternal Immunity", x = "Immunity Level", y = "Probability of Infection at Birth")
 theta_fit <- ggplot(data.frame(x = c(0, 25)), aes(x = x)) + 
-  stat_function(fun = function(x){0.041*x}) +
+  stat_function(fun = function(x){ifelse(theta*x > 1, 1, theta*x)}) +
   scale_x_continuous(breaks = seq(0, 25, 5)) +
   theme_bw() +
   labs(title = "Theta (fit)", x = "Immunity level", y = "Probability of infection")
@@ -78,7 +89,7 @@ omega <- ggplot(data.frame(x = c(0, 48)), aes(x = x)) +
   scale_x_continuous(breaks = seq(0, 48, 4)) +
   labs(title = "Immunity Waning", x = "Months Since Birth", y = "Proportion of Starting Probability of Immunity")
 omega_fit <- ggplot(data.frame(x = c(0, 48)), aes(x = x)) + 
-  stat_function(fun = function(x){0.037*x+1}) +
+  stat_function(fun = function(x){ifelse(omega*x+1 < 0, 0, omega*x+1)}) +
   theme_bw() +
   scale_x_continuous(breaks = seq(0, 48, 4)) +
   labs(title = "Omega (fit)", x = "Months since birth", y = "% of immunity")
@@ -94,7 +105,7 @@ alpha <- ggplot(data.frame(x = c(0, 48)), aes(x = x)) +
   scale_x_continuous(breaks = seq(0, 48, 4)) +
   labs(title = "Ageing", x = "Months Since Birth", y = "Probability of Developing Disease")
 alpha_fit <- ggplot(data.frame(x = c(0, 48)), aes(x = x)) + 
-  stat_function(fun = function(x){0.037*x+1}) +
+  stat_function(fun = function(x){ifelse(alpha*x+1 < 0, 0, alpha*x+1)}) +
   theme_bw() +
   scale_x_continuous(breaks = seq(0, 48, 4)) +
   labs(title = "Alpha (fit)", x = "Months since birth", y = "% of developing disease")
