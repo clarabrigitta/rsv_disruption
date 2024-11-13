@@ -169,16 +169,17 @@ likelihood_all <- function(param){
   inf_imm <- param[3]
   waning <- param[4]
   aging <- param[5]
+  case_import <- param[6]
   
   likelihood <- dbinom(round(scotland_rate$count, digits = 0),
-                       size = as.numeric(round(model_function(lambda = exp(disruption), theta = inf_imm, omega = waning, alpha = aging, stored_data = save_data)[, 1], digits = 0)),
+                       size = as.numeric(round(model_function(lambda = exp(disruption), theta = inf_imm, omega = waning, alpha = aging, stored_data = save_data, delta = case_import)[, 1], digits = 0)),
                        prob = detection,
                        log = T)
   
   return(sum(likelihood))  
 }
 
-setUp_all <- createBayesianSetup(likelihood_all, lower = c(0, -10, 0, -1, -1), upper = c(1, 0, 1, 0, 0))
+setUp_all <- createBayesianSetup(likelihood_all, lower = c(0, -10, 0, -1, -1, 0), upper = c(0.5, 0, 1, 0, 0, 0.05))
 
 settings = list(iterations = 10000, nrChains = 1, message = TRUE)
 
@@ -190,23 +191,23 @@ results <- mclapply(1:4,
                     mc.cores = 4)
 Sys.time()
 
-out_allDEzs <- createMcmcSamplerList(results)
+out_all <- createMcmcSamplerList(results)
 
 posterior <- getSample(out_all)
 
 summary(out_all)
-plot(out_all, which = c(1:4))
+plot(out_all, which = c(4:6))
 
 # -------------------------------------------------------------------------
 # saving trajectories
 
-posterior <- getSample(out_allDEzs)
+posterior <- getSample(out_all)
 Sys.time()
 traj <- mclapply(1:nrow(posterior),
                  function(n){
-                   model_function(lambda = exp(posterior[n, 2]), theta = posterior[n, 3], omega = posterior[n, 4], alpha = posterior[n, 5], stored_data = save_data)[, 1] * posterior[n, 1]
+                   model_function(lambda = exp(posterior[n, 2]), theta = posterior[n, 3], omega = posterior[n, 4], alpha = posterior[n, 5], stored_data = save_data, delta = posterior[n, 6])[, 1] * posterior[n, 1]
                  },
                  mc.cores = 4)
 Sys.time()
 
-traj_allDEzs <- traj
+traj_all <- traj
