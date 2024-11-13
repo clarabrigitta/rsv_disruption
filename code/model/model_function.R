@@ -122,7 +122,7 @@ save_data <- list(women_mat, empty, rate_vector, population, level, count)
 
 # beginning of model function
 
-model_function <- function(lambda, theta, omega, alpha, stored_data){
+model_function <- function(lambda, theta, omega, alpha, stored_data, delta){
 
   # matrix key:
   # 1 = time
@@ -130,6 +130,9 @@ model_function <- function(lambda, theta, omega, alpha, stored_data){
   # 3 - 28 = infection history status
   # 29 = births
   women <- stored_data[[1]]
+  
+  # adding base case import rate to exposure rate
+  women[, 2] <- women[, 2] + delta
 
   # subject rate to disruption factor lambda
   women[243:255, 2] <-  women[243:255, 2] * lambda
@@ -171,6 +174,9 @@ model_function <- function(lambda, theta, omega, alpha, stored_data){
   # 31 = aging
   # 32 = infected
   # 33 = disease
+  
+  # adding base case import rate to exposure rate
+  stored_data[[3]] <- stored_data[[3]] + delta
 
   # apply lambda to rate vector
   stored_data[[3]][99:111] <- stored_data[[3]][99:111] * lambda
