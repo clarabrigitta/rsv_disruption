@@ -85,7 +85,7 @@ theta_fig <- grid.arrange(theta_1, theta_2, ncol = 2, nrow = 1)
 
 n_sim <- 100
 
-omega_prior <- runif(n_sim, -1, 0)
+omega_prior <- runif(n_sim, 0, 1)
 
 omega_prior_sim <- list()
 
@@ -127,7 +127,7 @@ omega_fig <- grid.arrange(omega_1, omega_2, ncol = 2, nrow = 1)
 
 n_sim <- 100
 
-alpha_prior <- runif(n_sim, -0.2, 0)
+alpha_prior <- runif(n_sim, 0, 1)
 
 alpha_prior_sim <- list()
 
@@ -167,11 +167,12 @@ grid.arrange(alpha_1, alpha_2, ncol = 2, nrow = 1)
 
 prob_prior <- runif(n_sim, 0, 0.5)
 delta_prior <- runif(n_sim, 0, 0.05)
+theta_prior <- runif(n_sim, 0.5, 5)
 
 prior_sim <- list()
 
 for(i in 1:n_sim){
-  prior_sim[[i]] <- model_function(lambda = exp(lambda_prior[i]), theta = theta_prior[i], omega = omega_prior[i], alpha = alpha_prior[i], stored_data = save_data, delta_prior[i])
+  prior_sim[[i]] <- model_function(lambda = exp(lambda_prior[i]), theta = theta_prior[i], omega = omega_prior[i], alpha = alpha_prior[i], stored_data = save_data, delta = delta_prior[i])
   prior_sim[[i]][, 1] <- prior_sim[[i]][, 1] * prob_prior[i]
 }
 
