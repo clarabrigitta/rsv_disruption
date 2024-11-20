@@ -3,16 +3,16 @@ library(zoo)
 library(tidyr)
 library(ggplot2)
 
-for(paramsampler in c("twoDEzs", "twoMetropolis", "threeDEzs", "threeMetropolis", "fourDEzs", "fourMetropolis", "allDEzs", "allMetropolis")){
+# for(paramsampler in c("twoDEzs", "twoMetropolis", "threeDEzs", "threeMetropolis", "fourDEzs", "fourMetropolis", "allDEzs", "allMetropolis")){
+for(paramsampler in c("burnin", "nocaseimport", "fixedcaseimport", "maternalplusinflection", "allinflectiondecay")){
   traj <- do.call(rbind, get(paste0("traj_", paramsampler))) %>% 
     t() %>% 
     as.data.frame() %>%
     bind_cols(scotland_rate[, 1:2]) %>% 
-    pivot_longer(cols = c(1:40000), names_to = "iter", values_to = "count")
+    pivot_longer(cols = c(1:length(get(paste0("traj_", paramsampler)))), names_to = "iter", values_to = "count")
   
   fig <- ggplot() + 
-    # geom_line(data = traj, aes(x = yearmon, y = count, group = iter), alpha = 0.3, color = "darkgrey") +
-    geom_ribbon
+    geom_line(data = traj, aes(x = yearmon, y = count, group = iter), alpha = 0.05, color = "darkgrey") +
     geom_line(data = scotland_rate, aes(x = yearmon, y = count), alpha = 0.7, color = "black") +
     theme(legend.position = "none") +
     labs(x = "Months", y = "Count") + 
@@ -27,21 +27,25 @@ for(paramsampler in c("twoDEzs", "twoMetropolis", "threeDEzs", "threeMetropolis"
 # plot data vs mean and 95% interval
 library(HDInterval)
 
-traj <- do.call(rbind, traj_allDEzs) %>% 
-  as.data.frame() %>% 
-  hdi() %>% 
-  t() %>% 
-  bind_cols(scotland_rate[, c(1, 2, 5)]) %>% 
-  cbind(mean = colMeans(do.call(rbind, traj_allDEzs)))
-
-ggplot(traj) +
-  geom_line(aes(x = yearmon, y = count, color = "Scottish Data")) +
-  geom_line(aes(x = yearmon, y = mean, color = "Mean"), linetype = 2) +
-  geom_ribbon(aes(x = yearmon, ymax = upper, ymin = lower), alpha = 0.3, linetype = 0) +
-  labs(x = "Months", y = "Count") + 
-  scale_color_discrete(name = "") +
-  theme_classic() +
-  facet_wrap(~age)
+for(paramsampler in c("burnin", "nocaseimport", "fixedcaseimport", "maternalplusinflection", "allinflectiondecay")){
+  traj <- do.call(rbind, get(paste0("traj_", paramsampler))) %>% 
+    as.data.frame() %>% 
+    hdi() %>% 
+    t() %>% 
+    bind_cols(scotland_rate[, c(1, 2, 5)]) %>% 
+    cbind(mean = colMeans(do.call(rbind, get(paste0("traj_", paramsampler)))))
+  
+  fighdi <- ggplot(traj) +
+    geom_line(aes(x = yearmon, y = count, color = "Scottish Data")) +
+    geom_line(aes(x = yearmon, y = mean, color = "Mean"), linetype = 2) +
+    geom_ribbon(aes(x = yearmon, ymax = upper, ymin = lower), alpha = 0.3, linetype = 0) +
+    labs(x = "Months", y = "Count") + 
+    scale_color_discrete(name = "") +
+    theme_classic() +
+    facet_wrap(~age)
+  
+  ggsave(filename = paste0("/Users/lsh2301561/Desktop/rsv_disruption/output/figures/trajectories/hdi_", paramsampler, ".png"), plot = fighdi, width = 12, height = 8, dpi = 300)
+}
 
 # test plot to compare model with and without binomial fix
 test <- cbind(scotland_rate, 
