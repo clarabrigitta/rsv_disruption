@@ -23,10 +23,19 @@ ggplot(data.frame(x = c(0, 36)), aes(x = x)) +
   geom_line(data = waning, aes(x = time, y = waning, colour = "step-wise")) +
   stat_function(fun = waning_linear, aes(colour = "linear")) +
   stat_function(fun = waning_exponential, aes(colour = "exponential")) +
+  stat_function(fun = function(x){1/(1+exp(0.5*(x-12)))}, aes(colour = "sigmoidal")) +
   theme_bw() +
-  scale_colour_manual("Shapes", values = c("blue", "red", "black")) +
+  scale_colour_manual("Shapes", values = c("blue", "red", "black", "green")) +
   scale_x_continuous(breaks = seq(0, 36, 3)) +
   labs(x = "Months since birth", y = "% decrease on probability of disease", title = "Aging over time")
+
+exp_param <- seq(0, 1, 0.25)
+hist(exp_param)
+p <- ggplot(data.frame(x = c(0, 48)), aes(x = x))
+for(i in 1:length(exp_param)){
+  p <- p + stat_function(fun = function(x){1*exp_param[i]^x})
+}
+p
 
 # plot increasing effect of aging
 curve(1-(1-x/36), from = 0, to = 36, xlab = "Months since birth", ylab = "Increasing age", main = "Increasing age over time")
