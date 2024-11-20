@@ -29,7 +29,7 @@ function(x){1/25*x} # linear
 function(x){0.0441*exp(0.1248*x)} # exponential
 
 ggplot(data.frame(x = c(0, 25)), aes(x = x)) + 
-  stat_function(fun = function(x){1/(1+exp(-x + exp(2.5)))}, aes(colour = "sigmoidal")) +
+  stat_function(fun = function(x){1/(1+exp(-0.5*(x-12)))}, aes(colour = "sigmoidal")) +
   geom_line(data = prob, aes(x = time, y = prob_inf, colour = "step-wise")) +
   stat_function(fun = function(x){1/25*x}, aes(colour = "linear")) +
   stat_function(fun = function(x){0.0441*exp(0.1248*x)}, aes(colour = "exponential")) +
