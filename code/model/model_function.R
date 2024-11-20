@@ -122,7 +122,7 @@ save_data <- list(women_mat, empty, rate_vector, population, level, count)
 
 # beginning of model function
 
-model_function <- function(lambda, theta, omega, alpha, stored_data, delta){
+model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha2, stored_data, delta){
 
   # matrix key:
   # 1 = time
@@ -189,14 +189,13 @@ model_function <- function(lambda, theta, omega, alpha, stored_data, delta){
             subdata[, 1] <- x:(x+12*4-1)
             subdata[, 2] <- stored_data[[3]][x:(x+12*4-1)]
             subdata <- cbind(subdata,
-                          waning = omega * subdata[, 29] + 1,
-                          aging = alpha * subdata[, 29] + 1,
+                          waning = 1/(1 + exp(omega1 * (subdata[, 29]-12))),
+                          aging = 1/(1 + exp(alpha1 * (subdata[, 29]-12))),
                           infected = 0,
                           disease = 0)
-            subdata[subdata[, 30] < 0, 30] <- 0 # percentage of immunity cannot be below 0
-            subdata[subdata[, 31] < 0, 31] <- 0 # probability of disease cannot be below 0
-            start_inf <- theta * stored_data[[5]] # starting probability of infection given maternal immunity
-            start_inf[start_inf > 1] <- 1 # probability of infection cannot exceed 1
+            # subdata[subdata[, 30] < 0, 30] <- 0 # percentage of immunity cannot be below 0, omega * subdata[, 29] + 1, 
+            # subdata[subdata[, 31] < 0, 31] <- 0 # probability of disease cannot be below 0, alpha * subdata[, 29] + 1, 
+            start_inf <- 1/(1 + exp(-theta1 * (stored_data[[5]]-12))) # starting probability of infection given maternal immunity, theta * stored_data[[5]], start_inf[start_inf > 1] <- 1 # probability of infection cannot exceed 1
 
             for(month in 2:48){
               subdata[month, 3:27] <- subdata[month - 1, 3:27] # susceptible babies to next time step
