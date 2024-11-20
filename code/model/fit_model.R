@@ -162,7 +162,7 @@ plot(out_four)
 
 # -------------------------------------------------------------------------
 
-# single likelihood function
+# single likelihood function (binomial)
 likelihood_all <- function(param){
   detection <- param[1]
   disruption <- param[2]
@@ -179,7 +179,7 @@ likelihood_all <- function(param){
   return(sum(likelihood))  
 }
 
-setUp_all <- createBayesianSetup(likelihood_all, lower = c(0, -10, 0, -1, -1, 0), upper = c(0.5, 0, 1, 0, 0, 0.05))
+setUp_all <- createBayesianSetup(likelihood_all, lower = c(0, -10, 0, 0, 0, 0), upper = c(0.5, 0, 1, 1, 1, 0.05))
 
 settings = list(iterations = 10000, nrChains = 1, message = TRUE)
 
@@ -196,16 +196,66 @@ out_all <- createMcmcSamplerList(results)
 posterior <- getSample(out_all)
 
 summary(out_all)
+plot(out_all, which = c(1:3))
 plot(out_all, which = c(4:6))
+correlationPlot(out_all)
+
+# single likelihood function (poisson)
+likelihood_all <- function(param){
+  detection <- param[1]
+  disruption <- param[2]
+  inf_imm1 <- param[3]
+  # inf_imm2 <- param[4]
+  waning1 <- param[4]
+  # waning2 <- param[5]
+  aging1 <- param[5]
+  # aging2 <- param[6]
+  caseimport <- param[6]
+
+  likelihood <- dpois(round(scotland_rate$count, digits = 0),
+                      # as.numeric(round(model_function(lambda = exp(disruption), theta1 = inf_imm1, theta2 = inf_imm2, omega2 = waning2, alpha2 = aging2, stored_data = save_data, delta = caseimport)[, 1], digits = 0)) * detection, # maternal and inflection
+                      as.numeric(round(model_function(lambda = exp(disruption), theta1 = inf_imm1, theta2 = inf_imm2, omega1 = waning1, omega2 = waning2, alpha1 = aging1, alpha2 = aging2, stored_data = save_data, delta = caseimport)[, 1], digits = 0)) * detection, # all inflection and decay
+                      # as.numeric(round(model_function(lambda = exp(disruption), theta1 = inf_imm1, omega1 = waning1, alpha1 = aging1, stored_data = save_data, delta = caseimport)[, 1], digits = 0)) * detection, # burn-in (only decay)
+                      log = T)
+  
+  return(sum(likelihood))  
+}
+
+# setUp_all <- createBayesianSetup(likelihood_all, lower = c(0, -10, 0, 0, 0, 0, 0), upper = c(1, 0, 2, 25, 48, 48, 0.05)) # maternal and inflection
+setUp_all <- createBayesianSetup(likelihood_all, lower = c(0, -10, 0, 0, 0, 0, 0, 0, 0), upper = c(1, 0, 2, 25, 2, 48, 2, 48, 0.05)) # all inflection and decay
+# setUp_all <- createBayesianSetup(likelihood_all, lower = c(0, -10, 0, 0, 0, 0), upper = c(1, 0, 2, 2, 2, 0.05)) # burn-in (only decay)
+
+
+settings = list(iterations = 10000, nrChains = 1, message = TRUE, burnin = 5000)
+
+Sys.time()
+results <- mclapply(1:4,
+                    function(x) {
+                      runMCMC(bayesianSetup = setUp_all, sampler = "DEzs", settings = settings)
+                    },
+                    mc.cores = 4)
+Sys.time()
+
+out_all <- createMcmcSamplerList(results)
+out_burnin <- out_all
+
+posterior <- getSample(out_all)
+
+summary(out_all)
+plot(out_all, which = c(1:4))
+plot(out_all, which = c(5:7))
+
+correlationPlot(out_all)
+saveRDS(out_all, file = paste0("./output/data/parameters/out_", "burnin", ".rds"))
 
 # -------------------------------------------------------------------------
 # saving trajectories
 
-posterior <- getSample(out_all)
+posterior <- getSample(out_allinflectiondecay)
 Sys.time()
 traj <- mclapply(1:nrow(posterior),
                  function(n){
-                   model_function(lambda = exp(posterior[n, 2]), theta = posterior[n, 3], omega = posterior[n, 4], alpha = posterior[n, 5], stored_data = save_data, delta = posterior[n, 6])[, 1] * posterior[n, 1]
+                   model_function(lambda = exp(posterior[n, 2]), theta1 = posterior[n, 3], theta2 = posterior[n, 4], omega2 = posterior[n, 5], alpha2 = posterior[n, 6], stored_data = save_data, delta = posterior[n, 7])[, 1] * posterior[n, 1]
                  },
                  mc.cores = 4)
 Sys.time()
