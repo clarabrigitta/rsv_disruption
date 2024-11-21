@@ -92,3 +92,55 @@ rate_reference %>%
                       tickmode = "array",
                       tickangle = -45),
          shapes = lockdown)
+
+# plot parameter assumptions
+theta <- ggplot(data.frame(x = c(0, 25)), aes(x = x)) + 
+  stat_function(fun = function(x){1*x}) +
+  scale_x_continuous(breaks = seq(0, 25, 5)) +
+  theme_classic() +
+  theme(axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 14), 
+        axis.title.y = element_text(size = 14),
+        plot.title = element_text(size = 14)) +
+  labs(title = "Maternal Immunity", x = "Immunity Level", y = "Probability of Infection at Birth")
+theta_fit <- ggplot(data.frame(x = c(0, 25)), aes(x = x)) + 
+  stat_function(fun = function(x){ifelse(theta*x > 1, 1, theta*x)}) +
+  scale_x_continuous(breaks = seq(0, 25, 5)) +
+  theme_bw() +
+  labs(title = "Theta (fit)", x = "Immunity level", y = "Probability of infection")
+
+omega <- ggplot(data.frame(x = c(0, 48)), aes(x = x)) + 
+  stat_function(fun = function(x){-1/48*x + 1}) +
+  theme_classic() +
+  theme(axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 14), 
+        axis.title.y = element_text(size = 14),
+        plot.title = element_text(size = 14)) +
+  scale_x_continuous(breaks = seq(0, 48, 4)) +
+  labs(title = "Immunity Waning", x = "Months Since Birth", y = "Proportion of Starting Probability of Immunity")
+omega_fit <- ggplot(data.frame(x = c(0, 48)), aes(x = x)) + 
+  stat_function(fun = function(x){ifelse(omega*x+1 < 0, 0, omega*x+1)}) +
+  theme_bw() +
+  scale_x_continuous(breaks = seq(0, 48, 4)) +
+  labs(title = "Omega (fit)", x = "Months since birth", y = "% of immunity")
+
+alpha <- ggplot(data.frame(x = c(0, 48)), aes(x = x)) + 
+  stat_function(fun = function(x){-1/48*x+1}) +
+  theme_classic() +
+  theme(axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 14), 
+        axis.title.y = element_text(size = 14),
+        plot.title = element_text(size = 14)) +
+  scale_x_continuous(breaks = seq(0, 48, 4)) +
+  labs(title = "Ageing", x = "Months Since Birth", y = "Probability of Developing Disease")
+alpha_fit <- ggplot(data.frame(x = c(0, 48)), aes(x = x)) + 
+  stat_function(fun = function(x){ifelse(alpha*x+1 < 0, 0, alpha*x+1)}) +
+  theme_bw() +
+  scale_x_continuous(breaks = seq(0, 48, 4)) +
+  labs(title = "Alpha (fit)", x = "Months since birth", y = "% of developing disease")
+
+grid.arrange(theta, omega, alpha, theta_fit, omega_fit, alpha_fit, ncol = 3, nrow = 2)
+grid.arrange(theta, omega, alpha, ncol = 3, nrow = 1)
