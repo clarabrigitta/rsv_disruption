@@ -189,13 +189,11 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
             subdata[, 1] <- x:(x+12*4-1)
             subdata[, 2] <- stored_data[[3]][x:(x+12*4-1)]
             subdata <- cbind(subdata,
-                          waning = 1/(1 + exp(omega1 * (subdata[, 29]-12))),
-                          aging = 1/(1 + exp(alpha1 * (subdata[, 29]-12))),
+                          waning = 1/(1 + exp(omega1 * (subdata[, 29]-omega2))),
+                          aging = 1/(1 + exp(alpha1 * (subdata[, 29]-alpha2))),
                           infected = 0,
                           disease = 0)
-            # subdata[subdata[, 30] < 0, 30] <- 0 # percentage of immunity cannot be below 0, omega * subdata[, 29] + 1, 
-            # subdata[subdata[, 31] < 0, 31] <- 0 # probability of disease cannot be below 0, alpha * subdata[, 29] + 1, 
-            start_inf <- 1/(1 + exp(-theta1 * (stored_data[[5]]-12))) # starting probability of infection given maternal immunity, theta * stored_data[[5]], start_inf[start_inf > 1] <- 1 # probability of infection cannot exceed 1
+            start_inf <- 1/(1 + exp(-theta1 * (stored_data[[5]]-theta2))) # starting probability of infection given maternal immunity
 
             for(month in 2:48){
               subdata[month, 3:27] <- subdata[month - 1, 3:27] # susceptible babies to next time step
@@ -226,7 +224,6 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
                 count,
                 check = 0)
   data[data[, 1] < data[, 3], 4] <- 1 # fix model outputs lower than data for binomial distribution
-  # data[data[, 4] == 1, 1] <- data[data[, 4] == 1, 3] * 5
 
   return(data)
 
