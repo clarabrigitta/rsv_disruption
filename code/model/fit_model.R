@@ -45,9 +45,15 @@ likelihood_all <- function(param){
   return(sum(likelihood))  
 }
 
-setUp_all <- createBayesianSetup(likelihood_all, lower = c(0, -10, 0, 0, 0, 0, 0, 0), upper = c(1, 0, 2, 25, 2, 48, 2, 48)) # all inflection and decay
+setUp_all <- createBayesianSetup(likelihood_all, lower = c(0, -10,
+                                                           0.2, 0,
+                                                           0.2, 0,
+                                                           0.2, 0), upper = c(1, 0,
+                                                                              1.5, 20,
+                                                                              1.5, 30,
+                                                                              1.5, 30))
 
-settings = list(iterations = 10000, nrChains = 1, message = TRUE, burnin = 5000)
+settings = list(iterations = 50000, nrChains = 1, message = TRUE, burnin = 25000)
 
 Sys.time()
 results <- mclapply(1:4,
@@ -63,10 +69,12 @@ saveRDS(out_all, file = paste0("./output/data/parameters/out_", "...", ".rds"))
 posterior <- getSample(out_all)
 
 summary(out_all)
-plot(out_all, which = c(1:3))
-plot(out_all, which = c(4:6))
-plot(out_all, which = c(7:8))
+plot(out_all, which = c(1:2), start = 10)
+plot(out_all, which = c(3:4), start = 10)
+plot(out_all, which = c(5:6), start = 10)
+plot(out_all, which = c(7:8), start = 10)
 correlationPlot(out_all)
+traceplot(out_all)
 
 # -------------------------------------------------------------------------
 
