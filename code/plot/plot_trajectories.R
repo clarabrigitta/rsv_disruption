@@ -56,20 +56,28 @@ paramsampler <- ...
 
 # plot function shapes
 maternal <- ggplot(data.frame(x = c(0, 25)), aes(x = x)) + 
-    stat_function(fun = function(x){1/(1+exp(-2*(x-25)))}, aes(colour = "k=2, x0=25")) +
+    stat_function(fun = function(x){1/(1+exp(-0.2*(x-20)))}, aes(colour = "k=-0.2, x0=20")) +
     theme_bw() +
-    labs(x = "Months since maternal infection", y = "Immunity level")
+    labs(x = "Months since maternal infection", y = "Probability of infection")
 
 waning <- ggplot(data.frame(x = c(0, 48)), aes(x = x)) + 
-  stat_function(fun = function(x){1/(1+exp(1*(x-45)))}, aes(colour = "k=1, x0=45")) +
+  stat_function(fun = function(x){1/(1+exp(1.5*(x-6.9)))}, aes(colour = "k=1.5, x0=6.9")) +
   scale_x_continuous(breaks = seq(0, 48, 4)) +
   theme_bw() +
   labs(x = "Months since birth", y = "Waning immunity")
+
+prob_inf = 1
+(1 - ((1 - prob_inf) * 1/(1 + exp(1.5 * (x - 6.9)))))
+ggplot(data.frame(x = c(0, 48)), aes(x = x)) + 
+  stat_function(fun = function(x){(1 - ((1 - prob_inf) * 1/(1 + exp(1.5 * (x - 6.9)))))}) +
+  scale_x_continuous(breaks = seq(0, 48, 4)) +
+  theme_bw() +
+  labs(x = "Time", y = "Probability of infection")
   
 aging <- ggplot(data.frame(x = c(0, 48)), aes(x = x)) + 
-  stat_function(fun = function(x){1/(1+exp(2*(x-30)))}, aes(colour = "k=2, x0=40")) +
+  stat_function(fun = function(x){1/(1+exp(1.5*(x-26.1)))}, aes(colour = "k=1.5, x0=26.1")) +
   scale_x_continuous(breaks = seq(0, 48, 4)) +
   theme_bw() +
   labs(x = "Months since birth", y = "Probability of disease")
 
-grid.arrange(maternal, aging, waning, ncol = 3, nrow = 1)
+grid.arrange(maternal, waning, aging, ncol = 3, nrow = 1)
