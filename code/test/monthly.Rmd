@@ -1,0 +1,615 @@
+---
+title: "Infection and Disease by Month of Birth"
+output: html_document
+date: "2024-03-14"
+---
+
+<style type="text/css">
+  body{
+  font-size: 14pt;
+}
+</style>
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(plotly)
+library(knitr)
+
+source(file = "/Users/lsh2301561/Desktop/rsv_disruption/code/plot/plot_births.R")
+```
+
+```{r data, include=FALSE}
+women_prop <- readRDS("/Users/lsh2301561/Desktop/rsv_disruption/output/data/women/women_prop.rds")
+
+births_year <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/disruption/births_year.rds")
+births_age <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/disruption/births_age.rds")
+births_age_month <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/disruption/births_age_month.rds")
+
+births_year_disrupt <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/disruption/births_year_disrupt.rds")
+births_age_disrupt <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/disruption/births_age_disrupt.rds")
+births_age_month_disrupt <- readRDS(file = "/Users/lsh2301561/Desktop/rsv_disruption/output/data/disruption/births_age_month_disrupt.rds")
+
+```
+
+# Immunity level split
+```{r immunity, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+immunity <- women_prop %>%
+  mutate(disruption = factor(disruption, levels = 0:3, labels = c("No disruption", "Beginning of disruption", "1 year after disruption", "2 years after disruption")),
+         level = factor(level, levels = c("1", "2", "3", "4", "total"), labels = c("1 (high)", "2", "3", "4 (low)", "total"))) %>% 
+  ggplot() +
+  geom_bar(aes(x = month, y = proportion, fill = level), position = "fill", stat = "identity") +
+  scale_fill_manual(values = viridis(4)) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Month",
+       y = "Proportion",
+       fill = "Immunity Level") + 
+  facet_wrap(~disruption, nrow = 2, ncol = 2)
+
+immunity
+```
+
+# Infections
+
+**First infection by month of birth**
+<br/> <font size="3">No disruption</font>
+```{r inf, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+inf <- subplot(
+  plot_infections(births_year %>% filter(month_born == "Jan")),
+  plot_infections(births_year %>% filter(month_born == "Feb")),
+  plot_infections(births_year %>% filter(month_born == "Mar")),
+  plot_infections(births_year %>% filter(month_born == "Apr")),
+  plot_infections(births_year %>% filter(month_born == "May")),
+  plot_infections(births_year %>% filter(month_born == "Jun")),
+  plot_infections(births_year %>% filter(month_born == "Jul")),
+  plot_infections(births_year %>% filter(month_born == "Aug")),
+  plot_infections(births_year %>% filter(month_born == "Sep")),
+  plot_infections(births_year %>% filter(month_born == "Oct")),
+  plot_infections(births_year %>% filter(month_born == "Nov")),
+  plot_infections(births_year %>% filter(month_born == "Dec")),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.05, 0.06)
+)
+
+for(n in 6:60){
+  inf[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+inf
+```
+<font size="3">Beginning of disruption</font>
+```{r inf_1, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+inf_1 <- subplot(
+  plot_infections(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Jan")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Feb")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Mar")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Apr")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "May")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Jun")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Jul")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Aug")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Sep")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Oct")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Nov")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Dec")),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.05, 0.06)
+)
+
+for(n in 6:60){
+  inf_1[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+inf_1
+```
+<font size="3">1 year after disruption</font>
+```{r inf_2, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+inf_2 <- subplot(
+  plot_infections(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Jan")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Feb")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Mar")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Apr")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "May")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Jun")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Jul")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Aug")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Sep")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Oct")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Nov")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Dec")),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.05, 0.06)
+)
+
+for(n in 6:60){
+  inf_2[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+inf_2
+```
+<font size="3">2 years after disruption</font>
+```{r inf_3, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+inf_3 <- subplot(
+  plot_infections(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Jan")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Feb")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Mar")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Apr")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "May")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Jun")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Jul")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Aug")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Sep")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Oct")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Nov")),
+  plot_infections(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Dec")),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.05, 0.06)
+)
+
+for(n in 6:60){
+  inf_3[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+inf_3
+```
+
+**Cumulative first infection by month of birth**
+<br/> <font size="3">No disruption</font>
+```{r cum_inf, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+cum_inf <- subplot(plot_cumpropinf(births_year),
+                   plot_cumprop(births_age_month, type = "infection"),
+                   nrows = 1,
+                   shareX = FALSE,
+                   shareY = FALSE)
+
+for(n in 13:24){
+  cum_inf[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+cum_inf
+```
+<font size="3">Beginning of disruption</font>
+```{r cum_inf_1, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+cum_inf_1 <- subplot(plot_cumpropinf(births_year_disrupt %>% filter(disruption == 1)),
+                     plot_cumprop(births_age_month_disrupt %>% filter(disruption == 1), type = "infection"),
+                     nrows = 1,
+                     shareX = FALSE,
+                     shareY = FALSE)
+
+for(n in 13:24){
+  cum_inf_1[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+cum_inf_1
+```
+<font size="3">1 year after disruption</font>
+```{r cum_inf_2, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+cum_inf_2 <- subplot(plot_cumpropinf(births_year_disrupt %>% filter(disruption == 2)),
+                     plot_cumprop(births_age_month_disrupt %>% filter(disruption == 2), type = "infection"),
+                     nrows = 1,
+                     shareX = FALSE,
+                     shareY = FALSE)
+
+for(n in 13:24){
+  cum_inf_2[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+cum_inf_2
+```
+<font size="3">2 years after disruption</font>
+```{r cum_inf_3, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+cum_inf_3 <- subplot(plot_cumpropinf(births_year_disrupt %>% filter(disruption == 3)),
+                     plot_cumprop(births_age_month_disrupt %>% filter(disruption == 3), type = "infection"),
+                     nrows = 1,
+                     shareX = FALSE,
+                     shareY = FALSE)
+
+for(n in 13:24){
+  cum_inf_3[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+cum_inf_3
+```
+
+**Age at first infection by month of birth**
+<br/> <font size="3">No disruption</font>
+```{r age_inf, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+age_inf <- subplot(
+  plot_age(births_age %>% filter(month_born == "Jan"), types = "infected"),
+  plot_age(births_age %>% filter(month_born == "Feb"), types = "infected"),
+  plot_age(births_age %>% filter(month_born == "Mar"), types = "infected"),
+  plot_age(births_age %>% filter(month_born == "Apr"), types = "infected"),
+  plot_age(births_age %>% filter(month_born == "May"), types = "infected"),
+  plot_age(births_age %>% filter(month_born == "Jun"), types = "infected"),
+  plot_age(births_age %>% filter(month_born == "Jul"), types = "infected"),
+  plot_age(births_age %>% filter(month_born == "Aug"), types = "infected"),
+  plot_age(births_age %>% filter(month_born == "Sep"), types = "infected"),
+  plot_age(births_age %>% filter(month_born == "Oct"), types = "infected"),
+  plot_age(births_age %>% filter(month_born == "Nov"), types = "infected"),
+  plot_age(births_age %>% filter(month_born == "Dec"), types = "infected"),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.03, 0.05)
+)
+
+for(n in 6:60){
+  age_inf[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+age_inf
+```
+<font size="3">Beginning of disruption</font>
+```{r age_inf_1, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+age_inf_1 <- subplot(
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Jan"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Feb"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Mar"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Apr"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "May"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Jun"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Jul"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Aug"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Sep"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Oct"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Nov"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Dec"), types = "infected"),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.03, 0.05)
+)
+
+for(n in 6:60){
+  age_inf_1[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+age_inf_1
+```
+<font size="3">1 year after disruption</font>
+```{r age_inf_2, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+age_inf_2 <- subplot(
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Jan"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Feb"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Mar"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Apr"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "May"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Jun"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Jul"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Aug"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Sep"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Oct"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Nov"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Dec"), types = "infected"),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.03, 0.05)
+)
+
+for(n in 6:60){
+  age_inf_2[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+age_inf_2
+```
+<font size="3">2 years after disruption</font>
+```{r age_inf_3, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+age_inf_3 <- subplot(
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Jan"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Feb"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Mar"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Apr"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "May"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Jun"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Jul"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Aug"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Sep"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Oct"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Nov"), types = "infected"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Dec"), types = "infected"),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.03, 0.05)
+)
+
+for(n in 6:60){
+  age_inf_3[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+age_inf_3
+```
+
+## Disease
+
+**First occurence of disease by month of birth**
+<br/> <font size="3">No disruption</font>
+```{r dis, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+dis <- subplot(
+  plot_disease(births_year %>% filter(month_born == "Jan")),
+  plot_disease(births_year %>% filter(month_born == "Feb")),
+  plot_disease(births_year %>% filter(month_born == "Mar")),
+  plot_disease(births_year %>% filter(month_born == "Apr")),
+  plot_disease(births_year %>% filter(month_born == "May")),
+  plot_disease(births_year %>% filter(month_born == "Jun")),
+  plot_disease(births_year %>% filter(month_born == "Jul")),
+  plot_disease(births_year %>% filter(month_born == "Aug")),
+  plot_disease(births_year %>% filter(month_born == "Sep")),
+  plot_disease(births_year %>% filter(month_born == "Oct")),
+  plot_disease(births_year %>% filter(month_born == "Nov")),
+  plot_disease(births_year %>% filter(month_born == "Dec")),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.05, 0.06)
+)
+
+for(n in 6:60){
+  dis[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+dis
+```
+<font size="3">Beginning of disruption</font>
+```{r dis_1, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+dis_1 <- subplot(
+  plot_disease(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Jan")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Feb")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Mar")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Apr")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "May")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Jun")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Jul")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Aug")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Sep")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Oct")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Nov")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Dec")),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.05, 0.06)
+)
+
+for(n in 6:60){
+  dis_1[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+dis_1
+```
+<font size="3">1 year after disruption</font>
+```{r dis_2, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+dis_2 <- subplot(
+  plot_disease(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Jan")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Feb")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Mar")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Apr")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "May")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Jun")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Jul")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Aug")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Sep")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Oct")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Nov")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Dec")),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.05, 0.06)
+)
+
+for(n in 6:60){
+  dis_2[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+dis_2
+```
+<font size="3">2 years after disruption</font>
+```{r dis_3, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+dis_3 <- subplot(
+  plot_disease(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Jan")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Feb")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Mar")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Apr")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "May")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Jun")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Jul")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Aug")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Sep")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Oct")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Nov")),
+  plot_disease(births_year_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Dec")),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.05, 0.06)
+)
+
+for(n in 6:60){
+  dis_3[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+dis_3
+```
+
+**Cumulative first occurrence of disease by month of birth**
+<br/> <font size="3">No disruption</font>
+```{r cum_dis, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+cum_dis <- subplot(plot_cumpropdis(births_year),
+                   plot_cumprop(births_age_month, type = "disease"),
+                   nrows = 1,
+                   shareX = FALSE,
+                   shareY = FALSE)
+
+for(n in 13:24){
+  cum_dis[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+cum_dis
+```
+<font size="3">Beginning of disruption</font>
+```{r cum_dis_1, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+cum_dis_1 <- subplot(plot_cumpropdis(births_year_disrupt %>% filter(disruption == 1)),
+                     plot_cumprop(births_age_month_disrupt %>% filter(disruption == 1), type = "disease"),
+                     nrows = 1,
+                     shareX = FALSE,
+                     shareY = FALSE)
+
+for(n in 13:24){
+  cum_dis_1[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+cum_dis_1
+```
+<font size="3">1 year after disruption</font>
+```{r cum_dis_2, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+cum_dis_2 <- subplot(plot_cumpropdis(births_year_disrupt %>% filter(disruption == 2)),
+                     plot_cumprop(births_age_month_disrupt %>% filter(disruption == 2), type = "disease"),
+                     nrows = 1,
+                     shareX = FALSE,
+                     shareY = FALSE)
+
+for(n in 13:24){
+  cum_dis_2[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+cum_dis_2
+```
+<font size="3">2 years after disruption</font>
+```{r cum_dis_3, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+cum_dis_3 <- subplot(plot_cumpropdis(births_year_disrupt %>% filter(disruption == 3)),
+                     plot_cumprop(births_age_month_disrupt %>% filter(disruption == 3), type = "disease"),
+                     nrows = 1,
+                     shareX = FALSE,
+                     shareY = FALSE)
+
+for(n in 13:24){
+  cum_dis_3[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+cum_dis_3
+```
+
+**Age at first occurence of disease by month of birth**
+
+<br/> <font size="3">No disruption</font>
+```{r age_dis, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+age_dis <- subplot(
+  plot_age(births_age %>% filter(month_born == "Jan"), types = "disease"),
+  plot_age(births_age %>% filter(month_born == "Feb"), types = "disease"),
+  plot_age(births_age %>% filter(month_born == "Mar"), types = "disease"),
+  plot_age(births_age %>% filter(month_born == "Apr"), types = "disease"),
+  plot_age(births_age %>% filter(month_born == "May"), types = "disease"),
+  plot_age(births_age %>% filter(month_born == "Jun"), types = "disease"),
+  plot_age(births_age %>% filter(month_born == "Jul"), types = "disease"),
+  plot_age(births_age %>% filter(month_born == "Aug"), types = "disease"),
+  plot_age(births_age %>% filter(month_born == "Sep"), types = "disease"),
+  plot_age(births_age %>% filter(month_born == "Oct"), types = "disease"),
+  plot_age(births_age %>% filter(month_born == "Nov"), types = "disease"),
+  plot_age(births_age %>% filter(month_born == "Dec"), types = "disease"),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.03, 0.05)
+)
+
+for(n in 6:60){
+  age_dis[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+age_dis
+```
+<font size="3">Beginning of disruption</font>
+```{r age_dis_1, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+age_dis_1 <- subplot(
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Jan"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Feb"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Mar"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Apr"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "May"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Jun"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Jul"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Aug"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Sep"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Oct"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Nov"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 1) %>% filter(month_born == "Dec"), types = "disease"),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.03, 0.05)
+)
+
+for(n in 6:60){
+  age_dis_1[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+age_dis_1
+```
+<font size="3">1 year after disruption</font>
+```{r age_dis_2, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+age_dis_2 <- subplot(
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Jan"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Feb"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Mar"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Apr"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "May"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Jun"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Jul"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Aug"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Sep"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Oct"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Nov"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 2) %>% filter(month_born == "Dec"), types = "disease"),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.03, 0.05)
+)
+
+for(n in 6:60){
+  age_dis_2[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+age_dis_2
+```
+<font size="3">2 years after disruption</font>
+```{r age_dis_3, echo=FALSE, message=FALSE, warning=FALSE, fig.width=12}
+age_dis_3 <- subplot(
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Jan"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Feb"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Mar"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Apr"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "May"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Jun"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Jul"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Aug"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Sep"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Oct"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Nov"), types = "disease"),
+  plot_age(births_age_disrupt %>% filter(disruption == 3) %>% filter(month_born == "Dec"), types = "disease"),
+  nrows = 4,
+  shareX = FALSE,
+  shareY = TRUE,
+  margin = c(0.02, 0.02, 0.03, 0.05)
+)
+
+for(n in 6:60){
+  age_dis_3[["x"]][["data"]][[n]][["showlegend"]] <-  FALSE
+}
+
+age_dis_3
+```
