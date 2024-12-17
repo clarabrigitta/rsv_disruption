@@ -2,19 +2,14 @@ library(dplyr)
 library(zoo)
 library(tidyr)
 library(ggplot2)
-library(HDInterval)
 
-# plot all trajectories
-
-paramsampler <- ...
-
-# for(paramsampler in c("twoDEzs", "twoMetropolis", "threeDEzs", "threeMetropolis", "fourDEzs", "fourMetropolis", "allDEzs", "allMetropolis")){
-# for(paramsampler in c("nocaseimport", "fixedcaseimport", "maternalandinflection", "allinflectionanddecay")){
-  traj <- do.call(rbind, get(paste0("traj_", paramsampler))) %>% 
+plot_trajectories <- function(traj){
+  
+  traj <- do.call(rbind, traj) %>% 
     t() %>% 
     as.data.frame() %>%
     bind_cols(scotland_rate[, 1:2]) %>% 
-    pivot_longer(cols = c(1:length(get(paste0("traj_", paramsampler)))), names_to = "iter", values_to = "count")
+    pivot_longer(cols = c(1:length(traj)), names_to = "iter", values_to = "count")
   
   fig <- ggplot() + 
     geom_line(data = traj, aes(x = yearmon, y = count, group = iter), alpha = 0.05, color = "darkgrey") +
@@ -24,60 +19,6 @@ paramsampler <- ...
     theme_classic() +
     facet_wrap(~age)
   
-  ggsave(filename = paste0("/Users/lsh2301561/Desktop/rsv_disruption/output/figures/trajectories/", paramsampler, ".png"), plot = fig, width = 12, height = 8, dpi = 300)
-# } # only for use if loop needed
-
-# -------------------------------------------------------------------------
-
-# plot data vs mean and 95% interval
+  ggsave(filename = here("output", "figures", "trajectories", "test", paste0(n, ".png")), plot = fig, width = 12, height = 8, dpi = 300)
   
-# for(paramsampler in c("burnin", "nocaseimport", "fixedcaseimport", "maternalandinflection", "allinflectionanddecay")){
-  traj <- do.call(rbind, get(paste0("traj_", paramsampler))) %>% 
-    as.data.frame() %>% 
-    hdi() %>% 
-    t() %>% 
-    bind_cols(scotland_rate[, c(1, 2, 5)]) %>% 
-    cbind(mean = colMeans(do.call(rbind, get(paste0("traj_", paramsampler)))))
-  
-  fighdi <- ggplot(traj) +
-    geom_line(aes(x = yearmon, y = count, color = "Scottish Data")) +
-    geom_line(aes(x = yearmon, y = mean, color = "Mean"), linetype = 2) +
-    geom_ribbon(aes(x = yearmon, ymax = upper, ymin = lower), alpha = 0.3, linetype = 0) +
-    labs(x = "Months", y = "Count") + 
-    scale_color_discrete(name = "") +
-    theme_classic() +
-    facet_wrap(~age)
-  
-  ggsave(filename = paste0("/Users/lsh2301561/Desktop/rsv_disruption/output/figures/trajectories/hdi_", paramsampler, ".png"), plot = fighdi, width = 12, height = 8, dpi = 300)
-# } # only for use if loop needed
-
-
-# -------------------------------------------------------------------------
-
-# plot function shapes
-maternal <- ggplot(data.frame(x = c(0, 25)), aes(x = x)) + 
-    stat_function(fun = function(x){1/(1+exp(-0.2*(x-20)))}, aes(colour = "k=-0.2, x0=20")) +
-    theme_bw() +
-    labs(x = "Months since maternal infection", y = "Probability of infection")
-
-waning <- ggplot(data.frame(x = c(0, 48)), aes(x = x)) + 
-  stat_function(fun = function(x){1/(1+exp(1.5*(x-6.9)))}, aes(colour = "k=1.5, x0=6.9")) +
-  scale_x_continuous(breaks = seq(0, 48, 4)) +
-  theme_bw() +
-  labs(x = "Months since birth", y = "Waning immunity")
-
-prob_inf = 1
-(1 - ((1 - prob_inf) * 1/(1 + exp(1.5 * (x - 6.9)))))
-ggplot(data.frame(x = c(0, 48)), aes(x = x)) + 
-  stat_function(fun = function(x){(1 - ((1 - prob_inf) * 1/(1 + exp(1.5 * (x - 6.9)))))}) +
-  scale_x_continuous(breaks = seq(0, 48, 4)) +
-  theme_bw() +
-  labs(x = "Time", y = "Probability of infection")
-  
-aging <- ggplot(data.frame(x = c(0, 48)), aes(x = x)) + 
-  stat_function(fun = function(x){1/(1+exp(1.5*(x-26.1)))}, aes(colour = "k=1.5, x0=26.1")) +
-  scale_x_continuous(breaks = seq(0, 48, 4)) +
-  theme_bw() +
-  labs(x = "Months since birth", y = "Probability of disease")
-
-grid.arrange(maternal, waning, aging, ncol = 3, nrow = 1)
+}
