@@ -65,7 +65,7 @@ for(n in 1:length(combinations)){
                           omega1 = combined_params$waning1, omega2 = combined_params$waning2, 
                           alpha1 = combined_params$aging1, alpha2 = combined_params$aging2, 
                           stored_data = save_data, 
-                          delta = 0.015, 
+                          delta = 0.0075, 
                           n_interest = duration)[, 1], digits = 0)) * combined_params$detection,
                         log = T)
     

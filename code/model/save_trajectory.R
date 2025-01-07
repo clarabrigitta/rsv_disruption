@@ -19,7 +19,7 @@ save_trajectory <- function(out){
                                     omega1 = posterior[r, "waning1"], omega2 = posterior[r, "waning2"], 
                                     alpha1 = posterior[r, "aging1"], alpha2 = posterior[r, "aging2"], 
                                     stored_data = save_data, 
-                                    delta = 0.015,  
+                                    delta = 0.0075,  
                                     n_interest = duration)[, 1] * posterior[r, "detection"]
                    },
                    mc.cores = 4)
