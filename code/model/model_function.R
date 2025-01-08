@@ -20,7 +20,7 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
   women[, 2] <- women[, 2] + delta
 
   # subject rate to disruption factor lambda
-  women[243:255, 2] <-  women[243:255, 2] * lambda
+  women[303:315, 2] <-  women[303:315, 2] * lambda # period corresponding to March 2020-2021
 
   # initial state
   women[1, 3] <- 1000000
@@ -38,8 +38,8 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
   }
 
   # create link between mothers and babies (infection history/immunity split)
-  women <- women[145:360, ] # selecting for 2012-2029 to match time period of birth data
-  women[, 1] <- 1:216 # re-labeling time to match birth data
+  women <- women[181:360, ] # selecting for 2010 onwards to model babies (15years 1995-2010 to model mothers as "burn-in")
+  women[, 1] <- 1:180 # re-labeling time (modelling 15yrs 2010-2024)
 
   # calculate proportion of women in each infection history status per month
   women[, 3:(4+n_interest)] <- women[, 3:(4+n_interest)]/1000000
@@ -64,7 +64,7 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
   stored_data[[3]] <- stored_data[[3]] + delta
 
   # apply lambda to rate vector
-  stored_data[[3]][99:111] <- stored_data[[3]][99:111] * lambda
+  stored_data[[3]][123:135] <- stored_data[[3]][123:135] * lambda # period corresponding to March 2020-2021
 
   data <- map(1:nrow(babies),
           function(x){
@@ -103,8 +103,8 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
   data[, 3] <- data[, 1]/stored_data[[4]][2]*100000 # calculate rates for <1
   data[, 4] <- data[, 2]/stored_data[[4]][1]*100000 # calculate rates for 1-4
   data <- cbind(data[, 1:2], # 1:2 if count, 3:4 if rate
-                time = 1:263)
-  data <- rbind(data[58:149, 2:3], data[58:149, c(1, 3)]) # selecting times to match Scottish rate data
+                time = 1:227)
+  data <- rbind(data[82:173, 2:3], data[82:173, c(1, 3)]) # selecting times to match Scottish rate data (Scottish data spans oct 2016 - may 2024)
 
   return(data)
 

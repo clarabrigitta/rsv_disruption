@@ -12,16 +12,17 @@ library(purrr)
 # rep: number of years to model
 # n-burn: burn-in period before disruption
 
-create_data <- function(n_interest, rep = 30, n_burn = 20){
-  # helper data frame for dates and rates (without any disruption) to model babies
-  dates <- as.data.frame(matrix(NA, 12*(rep+4), 6))
+create_data <- function(n_interest, rep = 30){
+  
+  # helper data frame for dates and rates (without any disruption) to model babies - 2010 until 2024
+  dates <- as.data.frame(matrix(NA, 12*(rep+4), 6)) # add 4 years to account for modelling children until 4 years old
   colnames(dates) <- c("time", "month", "month_num", "year", "yearmon", "date")
   
   dates <- dates %>%
     mutate(time = 1:nrow(dates),
            month = rep(month.abb, nrow(dates)/12),
            month_num = rep(1:12, rep+4),
-           year = rep(c(2000:(2000+(nrow(dates)/12)-1)), each =12),
+           year = rep(c(1995:(1995+(nrow(dates)/12)-1)), each =12), # model 30 years: 1995-2024
            yearmon = as.yearmon(paste(year, month, sep = "_"), "%Y_%b"),
            date = as.Date(yearmon),
            rate = (case_when(month == month.abb[1] ~ 0.06,
@@ -29,28 +30,22 @@ create_data <- function(n_interest, rep = 30, n_burn = 20){
                              month %in% month.abb[4:8] ~ 0,
                              month == month.abb[9] ~ 0.04,
                              month == month.abb[10] ~ 0.08,
-                             month %in% month.abb[11:12] ~ 0.18))) %>%
-    filter(year >= 2012) %>%
+                             month %in% month.abb[11:12] ~ 0.18))) %>% # up until here to keep track of time/year when modelling mothers
+    filter(year >= 2010) %>%
     mutate(time = 1:n_distinct(time)) %>%
-    left_join(data.frame(level = rep(1:25, 264),
-                         time = rep(1:264, each = 25)))
+    left_join(data.frame(level = rep(1:25, 180),
+                         time = rep(1:180, each = 25))) # model 15yrs of births (2010-2024)
   
-  # helper data frame for Scottish birth data (2012 - 2029)
-  birth_data <- read_excel(here("data", "births-time-series-22-bt.3.xlsx"), skip = 3) %>%
-    head(-7) %>%
-    select(1:14) %>%
-    select(-Total) %>%
-    rename(year = Year, Jun = June, Jul = July, Sep = Sept) %>%
-    pivot_longer(cols = `Jan`:`Dec`, names_to = "month", values_to = "births") %>%
-    filter(year >= 2012) %>%
-    mutate(year = as.numeric(year),
-           yearmon = as.yearmon(paste(year, month, sep = "_"), "%Y_%b"),
+  # monthly birth occurrences data (spans 1995 jan - 2024 oct)
+  birth_data <- read_excel(here("data", "monthly-births-october-24-tabs.xlsx"), sheet = "Table_3", skip = 4) %>%
+    filter(`NHS Board area` == "Scotland") %>%
+    filter(Year >= 1995) %>% # start at 1995 to match time/year when modelling mothers (full dataset starts 1991)
+    select(-c(`NHS Board area`, `Column1`)) %>%
+    rename(year = Year, month = Month, births = `Births occurring`) %>%
+    mutate(yearmon = as.yearmon(paste(year, month, sep = "_"), "%Y_%B"),
            date = as.Date(yearmon)) %>%
-    right_join(dates %>% select(-c(rate, level)) %>% filter(year <= 2029) %>% distinct()) %>%
-    # extrapolate births beyond 2022 (linear regression)
-    mutate(births = ifelse(is.na(births), -8.131*time + 4903.856, births)) %>%
-    select(births) %>%
-    pull()
+    arrange(yearmon) %>% 
+    pull(births)
   
   # starting matrix for modelling women
   women_mat <- as.data.frame(matrix(0, 12*rep, 5+n_interest))
@@ -67,7 +62,7 @@ create_data <- function(n_interest, rep = 30, n_burn = 20){
                                     births = 0) %>%
     select(-month)
   
-  women_mat[145:360, "births"] <- birth_data # combining monthly birth data with women matrix
+  women_mat[1:358, "births"] <- birth_data # combining monthly birth data with women matrix, 358 because birth data only goes up until october
   
   women_mat <- apply(as.matrix(women_mat), c(1, 2), as.numeric)
   

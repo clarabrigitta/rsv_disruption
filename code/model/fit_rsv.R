@@ -41,7 +41,7 @@ scotland_rate <- read.csv(here("data", "respiratory_age_20240515.csv")) %>%
 duration = 24 # changeable as extra feature later on
 
 # create fixed datasets
-save_data <- create_data(n_interest = duration, rep = 30, n_burn = 20)
+save_data <- create_data(n_interest = duration, rep = 30)
 
 # create combinations to run
 combinations <- create_combinations()
