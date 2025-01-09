@@ -24,7 +24,7 @@ n <- as.integer(n)
 # -------------------------------------------------------------------------
 
 # weekly rate of laboratory confirmed cases by age and pathogen aggregated to monthly
-scotland_rate <- read.csv(here("data", "respiratory_age_20240515.csv")) %>%
+scotland_rate <- read.csv(here("data", "respiratory_age_20241218.csv")) %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d")) %>% 
   filter(Pathogen == "Respiratory syncytial virus",
          AgeGroup %in% c("<1 years", "1-4 years")) %>% 
@@ -36,7 +36,8 @@ scotland_rate <- read.csv(here("data", "respiratory_age_20240515.csv")) %>%
   ungroup() %>% 
   # to calculate counts
   mutate(population = ifelse(age == "<1 years", 47186, 200551),
-         count = rate / 100000 * population)
+         count = rate / 100000 * population) %>% 
+  filter(yearmon <= as.yearmon("2024-10"))
 
 # -------------------------------------------------------------------------
 
@@ -44,7 +45,7 @@ scotland_rate <- read.csv(here("data", "respiratory_age_20240515.csv")) %>%
 duration = 24 # changeable as extra feature later on
 
 # create fixed datasets
-save_data <- create_data(n_interest = duration, rep = 30, n_burn = 20)
+save_data <- create_data(n_interest = duration, rep = 30)
 
 # create combinations to run
 combinations <- create_combinations()

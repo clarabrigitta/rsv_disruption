@@ -21,7 +21,7 @@ source(here("code", "plot", "plot_shapes.R"))
 # -------------------------------------------------------------------------
 
 # weekly rate of laboratory confirmed cases by age and pathogen aggregated to monthly
-scotland_rate <- read.csv(here("data", "respiratory_age_20240515.csv")) %>%
+scotland_rate <- read.csv(here("data", "respiratory_age_20241218.csv")) %>%
   mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d")) %>% 
   filter(Pathogen == "Respiratory syncytial virus",
          AgeGroup %in% c("<1 years", "1-4 years")) %>% 
@@ -33,7 +33,8 @@ scotland_rate <- read.csv(here("data", "respiratory_age_20240515.csv")) %>%
   ungroup() %>% 
   # to calculate counts
   mutate(population = ifelse(age == "<1 years", 47186, 200551),
-         count = rate / 100000 * population)
+         count = rate / 100000 * population) %>% 
+  filter(yearmon <= as.yearmon("2024-10"))
 
 # -------------------------------------------------------------------------
 

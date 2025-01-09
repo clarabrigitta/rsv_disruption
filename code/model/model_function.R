@@ -104,7 +104,7 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
   data[, 4] <- data[, 2]/stored_data[[4]][1]*100000 # calculate rates for 1-4
   data <- cbind(data[, 1:2], # 1:2 if count, 3:4 if rate
                 time = 1:227)
-  data <- rbind(data[82:173, 2:3], data[82:173, c(1, 3)]) # selecting times to match Scottish rate data (Scottish data spans oct 2016 - may 2024)
+  data <- rbind(data[82:178, 2:3], data[82:178, c(1, 3)]) # selecting times to match Scottish rate data (Scottish data spans oct 2016 - dec 2024, but cutting off oct 2024 because of birth data)
 
   return(data)
 
