@@ -66,19 +66,6 @@ create_data <- function(n_interest, rep = 30){
   
   women_mat <- apply(as.matrix(women_mat), c(1, 2), as.numeric)
   
-  # vector for population size of <1 and 1-4 in Scotland
-  population <- read_excel(here("data", "mid-year-pop-est-22-data.xlsx"), sheet = "Table 1", skip = 3) %>%
-    filter(`Area name` == "Scotland",
-           Sex == "Persons") %>%
-    select(1:10) %>%
-    select(-`All ages`) %>%
-    pivot_longer(cols = `0`:`4`, names_to = "age_year", values_to = "population") %>%
-    mutate(age = ifelse(age_year == 0, "<1", "1-4")) %>%
-    group_by(age) %>%
-    summarise(population = sum(population)) %>%
-    select(population) %>%
-    pull()
-  
   # empty matrix to model babies for 4 years
   empty <- as.data.frame(matrix(0, 48, 4+n_interest))
   colnames(empty) <- c("time_calendar", "rate", "susceptible_reinf", str_c(rep("I", n_interest), 1:n_interest), "births") # , "time_birth", "prob_inf", "waning", "aging", "susceptible", "infected", "disease")
@@ -91,27 +78,8 @@ create_data <- function(n_interest, rep = 30){
   # vector of levels
   level <- c(n_interest+1, 1:n_interest)
   
-  # scotland counts
-  # weekly rate of laboratory confirmed cases by age and pathogen aggregated to monthly
-  count <- read.csv(here("data", "respiratory_age_20240515.csv")) %>%
-    mutate(date = as.Date(as.character(WeekBeginning), "%Y%m%d")) %>% 
-    filter(Pathogen == "Respiratory syncytial virus",
-           AgeGroup %in% c("<1 years", "1-4 years")) %>% 
-    rename(age = AgeGroup,
-           rate = RatePer100000) %>%
-    mutate(yearmon = as.yearmon(date)) %>% 
-    group_by(age, yearmon) %>% 
-    summarise(rate = sum(rate)) %>% 
-    ungroup() %>% 
-    # to calculate counts
-    mutate(population = ifelse(age == "<1 years", 47186, 200551),
-           count = rate / 100000 * population) %>% 
-    select(count) %>% 
-    round(digits = 0) %>%
-    as.matrix()
-  
   # put all data into a list
-  save_data <- list(women_mat, empty, rate_vector, population, level, count)
+  save_data <- list(women_mat, empty, rate_vector, level)
   
   return(save_data)
 }

@@ -78,7 +78,7 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
                           aging = 1/(1 + exp(alpha1 * (subdata[, 5+n_interest]-alpha2))),
                           infected = 0,
                           disease = 0)
-            start_inf <- 1/(1 + exp(-theta1 * (stored_data[[5]]-theta2))) # starting probability of infection given maternal immunity
+            start_inf <- 1/(1 + exp(-theta1 * (stored_data[[4]]-theta2))) # starting probability of infection given maternal immunity
 
             for(month in 2:48){
               subdata[month, 3:(3+n_interest)] <- subdata[month - 1, 3:(3+n_interest)] # susceptible babies to next time step
@@ -97,12 +97,7 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
   data <- cbind(data, age = 0)
   data[data[, 2] > 11, 4] <- 1 # 0 = <1, 1 = 1-4
   data <- tapply( data[, 3], list(data[, 1],  data[, 4]), sum) # calculate counts of disease per age group per month
-  data <- cbind(data,
-                rate_0 = 0,
-                rate_1 = 0)
-  data[, 3] <- data[, 1]/stored_data[[4]][2]*100000 # calculate rates for <1
-  data[, 4] <- data[, 2]/stored_data[[4]][1]*100000 # calculate rates for 1-4
-  data <- cbind(data[, 1:2], # 1:2 if count, 3:4 if rate
+  data <- cbind(data[, 1:2], # 1:2 if count
                 time = 1:227)
   data <- rbind(data[82:178, 2:3], data[82:178, c(1, 3)]) # selecting times to match Scottish rate data (Scottish data spans oct 2016 - dec 2024, but cutting off oct 2024 because of birth data)
 

@@ -27,13 +27,27 @@ scotland_rate <- read.csv(here("data", "respiratory_age_20241218.csv")) %>%
          AgeGroup %in% c("<1 years", "1-4 years")) %>% 
   rename(age = AgeGroup,
          rate = RatePer100000) %>%
-  mutate(yearmon = as.yearmon(date)) %>% 
+  mutate(yearmon = as.yearmon(date),
+         year = as.numeric(format(yearmon, "%Y"))) %>% 
+  left_join(read.csv(here("data", "hb2019_pop_est_14102024.csv")) %>% 
+              filter(Sex == "All") %>% 
+              group_by(Year) %>% 
+              summarise(across(`Age0`:`Age4`, sum)) %>% 
+              pivot_longer(cols = `Age0`:`Age4`, names_to = "age", values_to = "pop") %>% 
+              mutate(agegroup = ifelse(age == "Age0", "<1 years", "1-4 years")) %>% 
+              select(-age) %>% 
+              rename(year = Year, age = agegroup) %>% 
+              group_by(year, age) %>% 
+              summarise(pop = sum(pop)) %>% 
+              ungroup(),
+            by = c("year", "age")) %>% 
+  mutate(pop = case_when(year == 2024 & age == "<1 years" ~ 92394,
+                         year == 2024 & age == "1-4 years" ~ 402142,
+                         TRUE ~ pop), # using 2023 population estimate because 2024 not available
+         count = rate / 100000 * pop) %>%  
   group_by(age, yearmon) %>% 
-  summarise(rate = sum(rate)) %>% 
+  summarise(count = sum(count)) %>% 
   ungroup() %>% 
-  # to calculate counts
-  mutate(population = ifelse(age == "<1 years", 47186, 200551),
-         count = rate / 100000 * population) %>% 
   filter(yearmon <= as.yearmon("2024-10"))
 
 # -------------------------------------------------------------------------
