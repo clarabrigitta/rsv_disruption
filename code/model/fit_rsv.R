@@ -29,20 +29,18 @@ scotland_rate <- read.csv(here("data", "respiratory_age_20241218.csv")) %>%
          rate = RatePer100000) %>%
   mutate(yearmon = as.yearmon(date),
          year = as.numeric(format(yearmon, "%Y"))) %>% 
-  left_join(read.csv(here("data", "hb2019_pop_est_14102024.csv")) %>% 
-              filter(Sex == "All") %>% 
-              group_by(Year) %>% 
-              summarise(across(`Age0`:`Age4`, sum)) %>% 
-              pivot_longer(cols = `Age0`:`Age4`, names_to = "age", values_to = "pop") %>% 
-              mutate(agegroup = ifelse(age == "Age0", "<1 years", "1-4 years")) %>% 
-              select(-age) %>% 
-              rename(year = Year, age = agegroup) %>% 
+  left_join(read_excel(here("data", "mid-year-population-estimates-time-series-data.xlsx"), sheet = "Table 1", skip = 5) %>% 
+              filter(`Area name` == "Scotland", `Sex` == "Persons") %>% 
+              select(c("Year", `0`:`4`)) %>% 
+              pivot_longer(cols = `0`:`4`, names_to = "age_yr", values_to = "pop") %>% 
+              mutate(age = ifelse(age_yr == 0, "<1 years", "1-4 years")) %>% 
+              rename(year = Year) %>% 
               group_by(year, age) %>% 
               summarise(pop = sum(pop)) %>% 
               ungroup(),
             by = c("year", "age")) %>% 
-  mutate(pop = case_when(year == 2024 & age == "<1 years" ~ 92394,
-                         year == 2024 & age == "1-4 years" ~ 402142,
+  mutate(pop = case_when(year == 2024 & age == "<1 years" ~ 46197,
+                         year == 2024 & age == "1-4 years" ~ 201071,
                          TRUE ~ pop), # using 2023 population estimate because 2024 not available
          count = rate / 100000 * pop) %>%  
   group_by(age, yearmon) %>% 
