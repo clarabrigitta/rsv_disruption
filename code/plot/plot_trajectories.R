@@ -19,6 +19,7 @@ plot_trajectories <- function(traj){
     theme_classic() +
     facet_wrap(~age)
   
-  ggsave(filename = here("output", "figures", "trajectories", "test", paste0(n, ".png")), plot = fig, width = 12, height = 8, dpi = 300)
+  dir.create(here("output", "figures", "trajectories", format(Sys.Date(), "%d%m%Y")))
+  ggsave(filename = here("output", "figures", "trajectories", format(Sys.Date(), "%d%m%Y"), paste0(n, ".png")), plot = fig, width = 12, height = 8, dpi = 300)
   
 }

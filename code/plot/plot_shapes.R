@@ -81,6 +81,7 @@ plot_shapes <- function(out){
   
   fig <- grid.arrange(maternal, waning, aging, ncol = 3, nrow = 1)
   
-  ggsave(filename = here("output", "figures", "shapes", "test", paste0(n, ".png")), plot = fig, width = 12, height = 4, dpi = 300)
+  dir.create(here("output", "figures", "shapes", format(Sys.Date(), "%d%m%Y")))
+  ggsave(filename = here("output", "figures", "shapes", format(Sys.Date(), "%d%m%Y"), paste0(n, ".png")), plot = fig, width = 12, height = 4, dpi = 300)
   
 }

@@ -103,7 +103,8 @@ for(n in 1:length(combinations)){
   
   out <- createMcmcSamplerList(results)
   
-  saveRDS(out, file = here("output", "data", "parameters", "combinations", "test", paste0("out", n, ".rds")))
+  dir.create(here("output", "data", "parameters", format(Sys.Date(), "%d%m%Y")))
+  saveRDS(out, file = here("output", "data", "parameters", format(Sys.Date(), "%d%m%Y"), paste0("out", n, ".rds")))
   
   # compute trajectories
   # traj <- save_trajectory(out)

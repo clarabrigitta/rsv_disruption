@@ -10,7 +10,7 @@ plot_hdi <- function(traj){
     as.data.frame() %>% 
     hdi() %>% 
     t() %>% 
-    bind_cols(scotland_rate[, c(1, 2, 5)]) %>% 
+    bind_cols(scotland_rate[, c(1, 2, 3)]) %>% 
     cbind(mean = colMeans(do.call(rbind, traj)))
   
   fig <- ggplot(traj) +
@@ -22,6 +22,7 @@ plot_hdi <- function(traj){
     theme_classic() +
     facet_wrap(~age)
   
-  ggsave(filename = here("output", "figures", "hdi", "test", paste0(n, ".png")), plot = fig, width = 12, height = 8, dpi = 300)
+  dir.create(here("output", "figures", "hdi", format(Sys.Date(), "%d%m%Y")))
+  ggsave(filename = here("output", "figures", "hdi", format(Sys.Date(), "%d%m%Y"), paste0(n, ".png")), plot = fig, width = 12, height = 8, dpi = 300)
   
 }

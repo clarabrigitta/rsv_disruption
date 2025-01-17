@@ -24,8 +24,8 @@ save_trajectory <- function(out){
                    },
                    mc.cores = 4)
   
-  
-  saveRDS(traj, file = here("output", "data", "trajectories", "test", paste0("traj", n, ".rds"))) # needs to go in separate function
+  dir.create(here("output", "data", "trajectories", format(Sys.Date(), "%d%m%Y")))
+  saveRDS(traj, file = here("output", "data", "trajectories", format(Sys.Date(), "%d%m%Y"), paste0("traj", n, ".rds"))) # needs to go in separate function
   
   return(traj)
   
