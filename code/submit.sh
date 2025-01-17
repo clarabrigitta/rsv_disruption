@@ -7,7 +7,7 @@
 #SBATCH --mem=16G              # Request 8 GB of RAM
 #SBATCH --time=8:00:00       # Set runtime to 12 hours
 #SBATCH --output=rsvfit_%A_%a_%j.log 
-#SBATCH --array=1-1
+#SBATCH --array=1-18
 
 source activate ~/miniconda3/envs/R
 
