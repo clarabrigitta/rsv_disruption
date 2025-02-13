@@ -43,9 +43,9 @@ create_data <- function(n_interest, rep = 30){
     select(-c(`NHS Board area`, `Column1`)) %>%
     rename(year = Year, month = Month, births = `Births occurring`) %>%
     mutate(yearmon = as.yearmon(paste(year, month, sep = "_"), "%Y_%B"),
-           date = as.Date(yearmon)) %>%
-    arrange(yearmon) %>% 
-    pull(births)
+           date = as.Date(yearmon),
+           birth_month = format(as.Date(date, format = "%Y-%B-%d"), "%m")) %>%
+    arrange(yearmon)
   
   # starting matrix for modelling women
   women_mat <- as.data.frame(matrix(0, 12*rep, 5+n_interest))
@@ -59,16 +59,18 @@ create_data <- function(n_interest, rep = 30){
                                                      month == 9 ~ 0.04,
                                                      month == 10 ~ 0.08,
                                                      month == 11 | month == 12 ~ 0.18),
-                                    births = 0) %>%
+                                    births = 0,
+                                    birth_month = 0) %>%
     select(-month)
   
-  women_mat[1:358, "births"] <- birth_data # combining monthly birth data with women matrix, 358 because birth data only goes up until october
+  women_mat[1:358, "births"] <- birth_data[, "births"] # combining monthly birth data with women matrix, 358 because birth data only goes up until october
+  women_mat[1:358, "birth_month"] <- birth_data[, "birth_month"] # combining monthly birth data with women matrix, 358 because birth data only goes up until october
   
   women_mat <- apply(as.matrix(women_mat), c(1, 2), as.numeric)
   
   # empty matrix to model babies for 4 years
-  empty <- as.data.frame(matrix(0, 48, 4+n_interest))
-  colnames(empty) <- c("time_calendar", "rate", "susceptible_reinf", str_c(rep("I", n_interest), 1:n_interest), "births") # , "time_birth", "prob_inf", "waning", "aging", "susceptible", "infected", "disease")
+  empty <- as.data.frame(matrix(0, 48, 5+n_interest))
+  colnames(empty) <- c("time_calendar", "rate", "susceptible_reinf", str_c(rep("I", n_interest), 1:n_interest), "births", "birth_month") # , "time_birth", "prob_inf", "waning", "aging", "susceptible", "infected", "disease")
   empty <- cbind(empty, time_birth = 1:48)
   empty <- as.matrix(empty)
   
