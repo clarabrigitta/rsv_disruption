@@ -33,8 +33,8 @@ create_data <- function(n_interest, rep = 30){
                              month %in% month.abb[11:12] ~ 0.18))) %>% # up until here to keep track of time/year when modelling mothers
     filter(year >= 2010) %>%
     mutate(time = 1:n_distinct(time)) %>%
-    left_join(data.frame(level = rep(1:25, 180),
-                         time = rep(1:180, each = 25))) # model 15yrs of births (2010-2024)
+    left_join(data.frame(level = rep(1:25, 228),
+                         time = rep(1:228, each = 25))) # model 15yrs of births (2010-2024)
   
   # monthly birth occurrences data (spans 1995 jan - 2024 oct)
   birth_data <- read_excel(here("data", "monthly-births-october-24-tabs.xlsx"), sheet = "Table_3", skip = 4) %>%
