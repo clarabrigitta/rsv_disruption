@@ -20,7 +20,7 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
   women[, 2] <- women[, 2] + delta
   
   # subject rate to disruption factor lambda
-  women[303:313, 2] <-  women[303:313, 2] * lambda # period corresponding to March 2020-2021
+  women[303:313, 2] <-  women[303:313, 2] * lambda # period corresponding to March 2020 - January 2021
   
   # initial state
   women[1, 3] <- 1000000
@@ -65,7 +65,7 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
   stored_data[[3]] <- stored_data[[3]] + delta
   
   # apply lambda to rate vector
-  stored_data[[3]][123:133] <- stored_data[[3]][123:133] * lambda # period corresponding to March 2020-2021
+  stored_data[[3]][123:133] <- stored_data[[3]][123:133] * lambda # period corresponding to March 2020 - January 2021
   
   data <- map(1:nrow(babies),
               function(x){
@@ -94,11 +94,11 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
                 
               })
 
-  data <- do.call(rbind, data)[, c(1, 5+n_interest, 9+n_interest)] # unlist map output
+  data <- do.call(rbind, data)[, c(1, 6+n_interest, 10+n_interest)] # unlist map output
   data <- cbind(data, age = 0)
   data[data[, 2] > 11, 4] <- 1 # 0 = <1, 1 = 1-4
   data <- tapply( data[, 3], list(data[, 1],  data[, 4]), sum) # calculate counts of disease per age group per month
-  data <- cbind(data[, 1:2], # 1:2 if count
+  data <- cbind(data[, 1:2],
                 time = 1:227)
   data <- rbind(data[82:178, 2:3], data[82:178, c(1, 3)]) # selecting times to match Scottish rate data (Scottish data spans oct 2016 - dec 2024, but cutting off oct 2024 because of birth data)
 
