@@ -53,14 +53,14 @@ scotland_rate <- read.csv(here("data", "respiratory_age_20241218.csv")) %>%
 
 # -------------------------------------------------------------------------
 
-# set duration of maternal immunity
-duration = 24 # changeable as extra feature later on
-
-# create fixed datasets
-save_data <- create_data(n_interest = duration, rep = 30)
-
 # create combinations to run
 combinations <- create_combinations()
+
+# set duration of maternal immunity
+duration = combinations[[n]]$duration
+
+# create fixed datasets
+save_data <- create_data(n_interest = duration, rep = 30, factor = combinations[[n]]$factor)
 
 print(paste("start iteration number", n, "time:", Sys.time()))
 # poisson likelihood function

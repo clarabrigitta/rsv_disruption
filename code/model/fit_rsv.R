@@ -50,18 +50,19 @@ scotland_rate <- read.csv(here("data", "respiratory_age_20241218.csv")) %>%
 
 # -------------------------------------------------------------------------
 
-# set duration of maternal immunity
-duration = 24 # changeable as extra feature later on
-
-# create fixed datasets
-save_data <- create_data(n_interest = duration, rep = 30)
-
 # create combinations to run
 combinations <- create_combinations()
 
-for(n in 1:length(combinations)){
+for(n in 22:length(combinations)){
+  
+  # set duration of maternal immunity
+  duration = combinations[[n]]$duration
+  
+  # create fixed datasets
+  save_data <- create_data(n_interest = duration, rep = 30, factor = combinations[[n]]$factor)
   
   print(paste("start iteration number", n, "time:", Sys.time()))
+  
   # poisson likelihood function
   likelihood <- function(params){
     
@@ -91,8 +92,8 @@ for(n in 1:length(combinations)){
                                upper = combinations[[n]]$ub[combinations[[n]]$ind], 
                                names = combinations[[n]]$name[combinations[[n]]$ind])
   
-  # settings = list(iterations = 10, nrChains = 1, message = TRUE)
-  settings = list(iterations = 100000, nrChains = 1, message = TRUE, burnin = 50000) # don't thin for now
+  settings = list(iterations = 10, nrChains = 1, message = TRUE)
+  # settings = list(iterations = 100000, nrChains = 1, message = TRUE, burnin = 50000) # don't thin for now
   
   # fit model and save output
   results <- mclapply(1:4,
@@ -107,7 +108,7 @@ for(n in 1:length(combinations)){
   saveRDS(out, file = here("output", "data", "parameters", format(Sys.Date(), "%d%m%Y"), paste0("out", n, ".rds")))
   
   # compute trajectories
-  # traj <- save_trajectory(out)
+  traj <- save_trajectory(out)
   
   # plot outputs
   # plot_traceplot(out)

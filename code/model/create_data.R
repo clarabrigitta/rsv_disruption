@@ -12,7 +12,7 @@ library(purrr)
 # rep: number of years to model
 # n-burn: burn-in period before disruption
 
-create_data <- function(n_interest, rep = 30){
+create_data <- function(n_interest, rep = 30, factor){
   
   # helper data frame for dates and rates (without any disruption) to model babies - 2010 until 2024
   dates <- as.data.frame(matrix(NA, 12*(rep+4), 6)) # add 4 years to account for modelling children until 4 years old
@@ -31,6 +31,7 @@ create_data <- function(n_interest, rep = 30){
                              month == month.abb[9] ~ 0.04,
                              month == month.abb[10] ~ 0.08,
                              month %in% month.abb[11:12] ~ 0.18))) %>% # up until here to keep track of time/year when modelling mothers
+    mutate(rate = rate * factor) %>%
     filter(year >= 2010) %>%
     mutate(time = 1:n_distinct(time)) %>%
     left_join(data.frame(level = rep(1:25, 228),
@@ -61,6 +62,7 @@ create_data <- function(n_interest, rep = 30){
                                                      month == 11 | month == 12 ~ 0.18),
                                     births = 0,
                                     birth_month = 0) %>%
+    mutate(rate = rate * factor) %>%
     select(-month)
   
   women_mat[1:358, "births"] <- birth_data[, "births"] # combining monthly birth data with women matrix, 358 because birth data only goes up until october
