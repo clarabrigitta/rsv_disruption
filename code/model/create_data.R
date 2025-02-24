@@ -71,9 +71,9 @@ create_data <- function(n_interest, rep = 30, factor){
   women_mat <- apply(as.matrix(women_mat), c(1, 2), as.numeric)
   
   # empty matrix to model babies for 4 years
-  empty <- as.data.frame(matrix(0, 48, 5+n_interest))
+  empty <- as.data.frame(matrix(0, 49, 5+n_interest))
   colnames(empty) <- c("time_calendar", "rate", "susceptible_reinf", str_c(rep("I", n_interest), 1:n_interest), "births", "birth_month") # , "time_birth", "prob_inf", "waning", "aging", "susceptible", "infected", "disease")
-  empty <- cbind(empty, time_birth = 1:48)
+  empty <- cbind(empty, time_birth = 1:49)
   empty <- as.matrix(empty)
   
   # vector of monthly rates
