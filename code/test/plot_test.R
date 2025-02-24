@@ -604,7 +604,7 @@ birth_age <- map(1:nrow(birth_data),
   summarise(births = sum(births)) %>% 
   mutate(birth_month = as.numeric(birth_month))
 
-traj <- do.call(rbind, traj17subset) %>% 
+traj <- do.call(rbind, traj) %>% 
   as.data.frame() %>% 
   group_by(time_calendar, birth_month, time_birth) %>% 
   mutate(disease_mean = mean(disease)) %>% 
@@ -984,3 +984,159 @@ fig <- traj %>%
   labs(x = "Age (Months)", y = "Annual Rate Difference (per 100,000)", colour = "Birth Month") 
   # facet_wrap(~birth_month, nrow = 3, ncol = 4)
 fig
+
+
+# -------------------------------------------------------------------------
+
+# mother's time since last exposure over time
+
+test <- women %>% 
+  as.data.frame() %>% 
+  left_join(dates %>% select(-c(rate, level)) %>% distinct(), by = join_by(time)) %>% 
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024")), 
+                      labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
+                      right = FALSE)) %>% 
+  filter(!is.na(season)) %>% 
+  select(-susceptible_naive) %>% 
+  pivot_longer(cols = `susceptible_reinf`:`I24`, names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
+  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24")))
+
+ggplot(data = test) +
+  geom_line(aes(x = yearmon, y = value, group = last_exp, colour = last_exp)) +
+  scale_colour_viridis_d(option = "C") +
+  theme_classic() +
+  labs(x = "Time (Months)", y = "Count", colour = "Time Since Last Exposure") 
+
+# -------------------------------------------------------------------------
+
+# mother's time since exposure over a season
+
+test <- women %>% 
+  as.data.frame() %>% 
+  left_join(dates %>% select(-c(rate, level)) %>% distinct(), by = join_by(time)) %>% 
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024")), 
+                      labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
+                      right = FALSE)) %>% 
+  filter(!is.na(season)) %>% 
+  select(-susceptible_naive) %>% 
+  pivot_longer(cols = `susceptible_reinf`:`I24`, names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
+  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24"))) %>% 
+  group_by(season, last_exp) %>% 
+  summarise(value = sum(value))
+
+ggplot(data = test) +
+  geom_bar(aes(x = last_exp, y = value, group = season, fill = season), stat = "identity", position = "dodge") +
+  scale_fill_viridis_d(option = "C") +
+  theme_classic() +
+  labs(x = "Time (Months)", y = "Count", colour = "Time Since Last Exposure") 
+
+# -------------------------------------------------------------------------
+
+# babies born over mother's time since last exposure over time
+
+test <- babies %>% 
+  as.data.frame() %>% 
+  left_join(dates %>% select(-c(rate, level)) %>% distinct(), by = join_by(time)) %>% 
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024")), 
+                      labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
+                      right = FALSE)) %>% 
+  filter(!is.na(season)) %>% 
+  pivot_longer(cols = `susceptible_reinf`:`I24`, names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
+  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24")))
+
+ggplot(data = test) +
+  geom_line(aes(x = yearmon, y = value, group = last_exp, colour = last_exp)) +
+  scale_colour_viridis_d(option = "C") +
+  theme_classic() +
+  labs(x = "Time (Months)", y = "Count", colour = "Time Since Last Exposure") 
+
+# -------------------------------------------------------------------------
+
+# babies born over mother's time since exposure by season
+
+test <- babies %>% 
+  as.data.frame() %>% 
+  left_join(dates %>% select(-c(rate, level)) %>% distinct(), by = join_by(time)) %>% 
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024")), 
+                      labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
+                      right = FALSE)) %>% 
+  filter(!is.na(season)) %>% 
+  pivot_longer(cols = `susceptible_reinf`:`I24`, names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
+  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24"))) %>% 
+  group_by(season, last_exp) %>% 
+  summarise(value = sum(value))
+
+ggplot(data = test) +
+  geom_bar(aes(x = last_exp, y = value, group = season, fill = season), stat = "identity", position = "dodge") +
+  scale_fill_viridis_d(option = "C") +
+  theme_classic() +
+  labs(x = "Time (Months)", y = "Count", colour = "Time Since Last Exposure") 
+
+
+# -------------------------------------------------------------------------
+
+# disease count over time by mother's time since last exposure
+
+test <- data %>% 
+  as.data.frame() %>% 
+  left_join(dates %>% select(-c(rate, level)) %>% distinct() %>% rename(time_calendar = time), by = join_by(time_calendar)) %>% 
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024")), 
+                      labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
+                      right = FALSE)) %>% 
+  filter(!is.na(season)) %>% 
+  pivot_longer(cols = `susceptible_reinf`:`I24`, names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
+  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24"))) %>% 
+  group_by(yearmon, last_exp) %>% 
+  summarise(value = sum(value))
+  
+ggplot(data = test) +
+  geom_line(aes(x = yearmon, y = value, group = last_exp, colour = last_exp)) +
+  scale_colour_viridis_d(option = "C") +
+  theme_classic() +
+  labs(x = "Time (Months)", y = "Count", colour = "Time Since Last Exposure") 
+
+# -------------------------------------------------------------------------
+
+# disease count over mother's time since last exposure by season
+
+test <- data %>% 
+  as.data.frame() %>% 
+  left_join(dates %>% select(-c(rate, level)) %>% distinct() %>% rename(time_calendar = time), by = join_by(time_calendar)) %>% 
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024")), 
+                      labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
+                      right = FALSE)) %>% 
+  filter(!is.na(season)) %>% 
+  pivot_longer(cols = `susceptible_reinf`:`I24`, names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
+  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24"))) %>% 
+  group_by(season, last_exp) %>% 
+  summarise(value = sum(value))
+
+ggplot(data = test) +
+  geom_bar(aes(x = last_exp, y = value, group = season, fill = season), stat = "identity", position = "dodge") +
+  scale_fill_viridis_d(option = "C") +
+  theme_classic() +
+  labs(x = "Time (Months)", y = "Count", colour = "Time Since Last Exposure") 
