@@ -72,8 +72,8 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
                 
                 subdata <- stored_data[[2]]
                 subdata[1, 1:(5+n_interest)] <- babies[x, ]
-                subdata[, 1] <- x:(x+12*4-1)
-                subdata[, 2] <- stored_data[[3]][x:(x+12*4-1)]
+                subdata[, 1] <- x:(x+12*4)
+                subdata[, 2] <- stored_data[[3]][x:(x+12*4)]
                 subdata <- cbind(subdata,
                                  waning = 1/(1 + exp(omega1 * (subdata[, 6+n_interest]-omega2))),
                                  aging = 1/(1 + exp(alpha1 * (subdata[, 6+n_interest]-alpha2))),
@@ -81,7 +81,7 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
                                  disease = 0)
                 start_inf <- 1/(1 + exp(-theta1 * (stored_data[[4]]-theta2))) # starting probability of infection given maternal immunity
                 
-                for(month in 2:48){
+                for(month in 2:49){
                   subdata[month, 3:(3+n_interest)] <- subdata[month - 1, 3:(3+n_interest)] # susceptible babies to next time step
                   subdata[month - 1, 3:(3+n_interest)] <- subdata[month - 1, 3:(3+n_interest)] * subdata[month - 1, 2] * (1 - ((1 - start_inf) * subdata[month - 1, n_interest+7])) # calculate number of babies infected in each immunity level
                   subdata[month - 1, n_interest+9] <- sum(subdata[month - 1, 3:(3+n_interest)]) # total number of infections at that time step
@@ -89,6 +89,8 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
                   subdata[month - 1, 3:(3+n_interest)] <- subdata[month - 1, 3:(3+n_interest)] * subdata[month - 1, n_interest+8] # calculate number of babies that develop disease in each immunity level
                   subdata[month - 1, n_interest+10] <- sum(subdata[month - 1, 3:(3+n_interest)]) # total number of babies that develop disease at that time step
                 }
+                
+                subdata <- subdata[-nrow(subdata), ]
                 
                 return(subdata)
                 
