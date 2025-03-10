@@ -604,11 +604,11 @@ birth_age <- map(1:nrow(birth_data),
   summarise(births = sum(births)) %>% 
   mutate(birth_month = as.numeric(birth_month))
 
-traj <- do.call(rbind, traj) %>% 
+test <- do.call(rbind, traj) %>% 
   as.data.frame() %>% 
   group_by(time_calendar, birth_month, time_birth) %>% 
   mutate(disease_mean = mean(disease)) %>% 
-  select(-c(waning, aging, infected, disease)) %>% 
+  select(-c(waning, aging, infected, disease, births)) %>% 
   distinct() %>% 
   ungroup() %>% 
   left_join(dates %>% 
@@ -621,7 +621,7 @@ traj <- do.call(rbind, traj) %>%
                       labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
                       right = FALSE)) %>% 
   filter(!is.na(season)) %>% 
-  left_join(birth_age) %>% 
+  left_join(birth_age, by = join_by(time_calendar, birth_month, time_birth)) %>% 
   group_by(time_birth, season) %>% 
   summarise(disease = sum(disease_mean),
             births = sum(births)) %>% 
@@ -629,10 +629,10 @@ traj <- do.call(rbind, traj) %>%
   mutate(attack_rate = (disease/births)*100000)
 
 fig <- ggplot() +
-  geom_line(data = traj, aes(x = time_birth, y = attack_rate, group = season, colour = season), size = 1) +
-  scale_colour_viridis_d(option = "C") +
+  geom_line(data = test, aes(x = time_birth, y = attack_rate, group = season, colour = season), size = 1) +
+  scale_colour_viridis_d(option = "turbo") +
   theme_classic() +
-  labs(x = "Age (Months)", y = "Annual RSV Attack Rate (per 100,000)", colour = "Season")
+  labs(x = "Age (Months)", y = "Annual RSV Disease Rate (per 100,000)", colour = "Season")
 fig
 
 # -------------------------------------------------------------------------
@@ -760,7 +760,7 @@ birth_age <- map(1:nrow(birth_data),
   summarise(births = sum(births)) %>% 
   mutate(birth_month = as.numeric(birth_month))
 
-traj <- do.call(rbind, traj17subset) %>% 
+test <- do.call(rbind, traj) %>% 
   as.data.frame() %>% 
   group_by(time_calendar, birth_month, time_birth) %>% 
   mutate(disease_mean = mean(disease)) %>% 
@@ -780,10 +780,10 @@ traj <- do.call(rbind, traj17subset) %>%
          birth_month = factor(birth_month, levels = 1:12)) 
 
 fig <- ggplot() +
-  geom_line(data = traj, aes(x = time_birth, y = attack_rate, group = birth_month, colour = birth_month)) +
+  geom_line(data = test, aes(x = time_birth, y = attack_rate, group = birth_month, colour = birth_month)) +
   scale_colour_viridis_d(option = "C") +
   theme_classic() +
-  labs(x = "Age (Months)", y = "RSV Attack Rate (per 100,000)", colour = "Birth Month")
+  labs(x = "Age (Months)", y = "RSV Disease Rate (per 100,000)", colour = "Birth Month")
 fig
 
 # -------------------------------------------------------------------------
@@ -1036,7 +1036,7 @@ ggplot(data = test) +
   geom_bar(aes(x = last_exp, y = value, group = season, fill = season), stat = "identity", position = "dodge") +
   scale_fill_viridis_d(option = "C") +
   theme_classic() +
-  labs(x = "Time (Months)", y = "Count", colour = "Time Since Last Exposure") 
+  labs(x = "Time Since Last Exposure (Months)", y = "Count", colour = "Time Since Last Exposure") 
 
 # -------------------------------------------------------------------------
 
@@ -1054,13 +1054,17 @@ test <- babies %>%
   mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
                            "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
                            "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
-  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24")))
+  mutate(level = case_when(last_exp %in% c(1:4) ~ "high",
+                           last_exp %in% c(5:7) ~ "low",
+                           last_exp %in% c(7:24, ">24") ~ "none")) %>% 
+  group_by(yearmon, level) %>% 
+  summarise(value = sum(value))
 
 ggplot(data = test) +
-  geom_line(aes(x = yearmon, y = value, group = last_exp, colour = last_exp)) +
-  scale_colour_viridis_d(option = "C") +
+  geom_line(aes(x = yearmon, y = value, group = level, colour = level)) +
+  scale_colour_manual(values = c("#0B0405FF", "#357BA2FF", "#78D6AEFF"), labels = c("High", "Low", "None")) +  # Correct palette name
   theme_classic() +
-  labs(x = "Time (Months)", y = "Count", colour = "Time Since Last Exposure") 
+  labs(x = "Time (Months)", y = "Proportion of babies (%)", colour = "Immunity level") 
 
 # -------------------------------------------------------------------------
 
@@ -1086,8 +1090,22 @@ ggplot(data = test) +
   geom_bar(aes(x = last_exp, y = value, group = season, fill = season), stat = "identity", position = "dodge") +
   scale_fill_viridis_d(option = "C") +
   theme_classic() +
-  labs(x = "Time (Months)", y = "Count", colour = "Time Since Last Exposure") 
+  labs(x = "Time Since Last Exposure in Mothers (Months)", y = "Count") 
 
+# -------------------------------------------------------------------------
+
+# births over time
+
+test <- babies %>% 
+  as.data.frame() %>% 
+  rename(time_calendar = time) %>% 
+  left_join(dates %>% select(-c(rate, level)) %>% distinct() %>% rename(time_calendar = time), by = join_by(time_calendar)) %>% 
+  filter(yearmon <= "Oct 2024")
+
+ggplot(data = test) +
+  geom_line(aes(x = yearmon, y = births, group = 1))+
+  theme_classic() +
+  labs(x = "Time (Months)", y = "Birth Count") 
 
 # -------------------------------------------------------------------------
 
@@ -1113,7 +1131,7 @@ ggplot(data = test) +
   geom_line(aes(x = yearmon, y = value, group = last_exp, colour = last_exp)) +
   scale_colour_viridis_d(option = "C") +
   theme_classic() +
-  labs(x = "Time (Months)", y = "Count", colour = "Time Since Last Exposure") 
+  labs(x = "Time (Months)", y = "Count", colour = "Time Since Last Exposure in Mothers") 
 
 # -------------------------------------------------------------------------
 
@@ -1139,4 +1157,429 @@ ggplot(data = test) +
   geom_bar(aes(x = last_exp, y = value, group = season, fill = season), stat = "identity", position = "dodge") +
   scale_fill_viridis_d(option = "C") +
   theme_classic() +
-  labs(x = "Time (Months)", y = "Count", colour = "Time Since Last Exposure") 
+  labs(x = "Time Since Last Exposure in Mothers (Months)", y = "Count") 
+
+# -------------------------------------------------------------------------
+
+# disease rate over time by mother's time since last exposure
+
+birth_data <- babies %>% 
+  as.data.frame() %>% 
+  filter(time %in% c((82-48):178))
+
+birth_immunity <- map(1:nrow(birth_data),
+                 function(x){
+                   data <- birth_data[x, ] %>% 
+                     uncount(weights = 48) %>% 
+                     mutate(time_calendar = as.numeric(birth_data[x, "time"]):(as.numeric(birth_data[x, "time"])+47),
+                            time_birth = 1:48)
+                   return(data)
+                 }) %>% 
+  do.call(rbind, .) %>% 
+  group_by(time_calendar, time_birth, birth_month) %>% 
+  summarise(across(c(`susceptible_reinf`:`I24`, `births`), sum, .names = "{.col}")) %>% 
+  mutate(birth_month = as.numeric(birth_month)) %>% 
+  select(-births) %>% 
+  pivot_longer(cols = c(`susceptible_reinf`:`I24`), names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
+  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24"))) %>%
+  group_by(time_calendar, last_exp) %>% 
+  summarise(births = sum(value))
+
+test <- do.call(rbind, traj) %>% 
+  as.data.frame() %>% 
+  select(-c(waning, aging, infected)) %>% 
+  group_by(time_calendar, birth_month, time_birth) %>% 
+  summarise(across(c(`susceptible_reinf`:`I24`, `disease`), mean, .names = "{.col}")) %>% 
+  ungroup() %>% 
+  left_join(dates %>% select(-c(rate, level)) %>% distinct() %>% rename(time_calendar = time), by = join_by(time_calendar)) %>% 
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024")), 
+                      labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
+                      right = FALSE)) %>% 
+  filter(!is.na(season)) %>% 
+  pivot_longer(cols = `susceptible_reinf`:`I24`, names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
+  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24"))) %>% 
+  group_by(time_calendar, yearmon, last_exp) %>% 
+  summarise(disease = sum(value)) %>% 
+  left_join(birth_immunity) %>% 
+  ungroup() %>% 
+  mutate(attack_rate = (disease/births)*100000)
+  
+
+ggplot(data = test) +
+  geom_line(aes(x = yearmon, y = attack_rate, group = last_exp, colour = last_exp)) +
+  scale_colour_viridis_d(option = "C") +
+  theme_classic() +
+  labs(x = "Time (Months)", y = "Monthly RSV Attack Rate (per 100,000)", colour = "Time Since Last Exposure in Mothers") # need to add detection rate?
+
+# -------------------------------------------------------------------------
+
+# disease rate by season over mother's time since last exposure
+
+birth_data <- babies %>% 
+  as.data.frame() %>% 
+  filter(time %in% c((82-48):178))
+
+birth_immunity <- map(1:nrow(birth_data),
+                      function(x){
+                        data <- birth_data[x, ] %>% 
+                          uncount(weights = 48) %>% 
+                          mutate(time_calendar = as.numeric(birth_data[x, "time"]):(as.numeric(birth_data[x, "time"])+47),
+                                 time_birth = 1:48)
+                        return(data)
+                      }) %>% 
+  do.call(rbind, .) %>% 
+  group_by(time_calendar, time_birth, birth_month) %>% 
+  summarise(across(c(`susceptible_reinf`:`I24`, `births`), sum, .names = "{.col}")) %>% 
+  mutate(birth_month = as.numeric(birth_month)) %>% 
+  select(-births) %>% 
+  pivot_longer(cols = c(`susceptible_reinf`:`I24`), names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
+  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24"))) %>%
+  group_by(time_calendar, last_exp) %>% 
+  summarise(births = sum(value))
+
+test <- do.call(rbind, traj) %>% 
+  as.data.frame() %>% 
+  select(-c(waning, aging, infected)) %>% 
+  group_by(time_calendar, birth_month, time_birth) %>% 
+  summarise(across(c(`susceptible_reinf`:`I24`, `disease`), mean, .names = "{.col}")) %>% 
+  ungroup() %>% 
+  left_join(dates %>% select(-c(rate, level)) %>% distinct() %>% rename(time_calendar = time), by = join_by(time_calendar)) %>% 
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024")), 
+                      labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
+                      right = FALSE)) %>% 
+  filter(!is.na(season)) %>% 
+  pivot_longer(cols = `susceptible_reinf`:`I24`, names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
+  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24"))) %>% 
+  group_by(time_calendar, yearmon, season, last_exp) %>% 
+  summarise(disease = sum(value)) %>% 
+  left_join(birth_immunity) %>% 
+  ungroup() %>% 
+  group_by(season, last_exp) %>% 
+  summarise(disease = sum(disease),
+            births = sum(births)) %>% 
+  mutate(attack_rate = (disease/births)*100000)
+
+
+ggplot(data = test) +
+  geom_line(aes(x = last_exp, y = attack_rate, group = season, colour = season)) +
+  scale_colour_viridis_d(option = "turbo") +
+  theme_classic() +
+  labs(x = "Months since maternal infection", y = "Annual RSV Disease Rate (per 100,000)", colour = "Season") # need to add detection rate?
+
+# -------------------------------------------------------------------------
+
+# attack rate birth month/time for one season
+
+birth_data <- births %>% 
+  filter(year >= 2010) %>% 
+  mutate(time = 1:178) %>% 
+  filter(time %in% c((82-48):178))
+
+birth_age <- map(1:nrow(birth_data),
+                 function(x){
+                   data <- birth_data[x, ] %>% 
+                     uncount(weights = 48) %>% 
+                     mutate(time_calendar = as.numeric(birth_data[x, "time"]):(as.numeric(birth_data[x, "time"])+47),
+                            time_birth = 1:48)
+                   return(data)
+                 }) %>% 
+  do.call(rbind, .) %>% 
+  filter(time_calendar %in% c(82:178)) %>% 
+  group_by(time_birth, birth_month) %>% 
+  summarise(births = sum(births)) %>% 
+  mutate(birth_month = as.numeric(birth_month))
+
+test <- do.call(rbind, traj) %>% 
+  as.data.frame() %>% 
+  group_by(time_calendar, birth_month, time_birth) %>% 
+  mutate(disease_mean = mean(disease)) %>% 
+  select(-c(waning, aging, infected, disease)) %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  left_join(dates %>% 
+              select(-level) %>% 
+              unique() %>% 
+              rename(time_calendar = time),
+            by = join_by(time_calendar)) %>% 
+  group_by(time_birth, birth_month) %>%
+  summarise(disease = sum(disease_mean)) %>%
+  ungroup() %>%
+  left_join(birth_age) %>%
+  mutate(attack_rate = (disease/births)*100000,
+         birth_month = factor(birth_month, levels = 1:12)) %>% 
+  nest(.by = birth_month) %>%
+  mutate(birth_month = as.numeric(birth_month)) %>% 
+  mutate(data = map2(data, birth_month, ~ .x %>% 
+                       mutate(time = seq(from = .y, length.out = 48)))) %>% 
+  unnest() %>% 
+  mutate(birth_month = factor(birth_month, levels = 1:12)) %>% 
+  left_join(data.frame(time = 1:60,
+                       month = rep(month.abb, 5))) %>% 
+  mutate(month = factor(month, levels = month.abb))
+
+fig <- ggplot() +
+  geom_line(data = test, aes(x = time, y = attack_rate, colour = birth_month, group = 1)) +
+  scale_colour_viridis_d(option = "C") +
+  theme_classic() +
+  labs(x = "Time (Months)", y = "RSV Disease Rate (per 100,000)", colour = "Birth Month") +
+  facet_wrap(~birth_month, ncol = 1)
+fig
+  
+# -------------------------------------------------------------------------
+
+# attack rate birth month/month of the year
+
+birth_data <- births %>% 
+  filter(year >= 2010) %>% 
+  mutate(time = 1:178) %>% 
+  filter(time %in% c((82-48):178))
+
+birth_age <- map(1:nrow(birth_data),
+                 function(x){
+                   data <- birth_data[x, ] %>% 
+                     uncount(weights = 48) %>% 
+                     mutate(time_calendar = as.numeric(birth_data[x, "time"]):(as.numeric(birth_data[x, "time"])+47),
+                            time_birth = 1:48)
+                   return(data)
+                 }) %>% 
+  do.call(rbind, .) %>% 
+  group_by(time_calendar, time_birth, birth_month) %>% 
+  summarise(births = sum(births)) %>% 
+  mutate(birth_month = as.numeric(birth_month))
+
+test <- do.call(rbind, traj) %>% 
+  as.data.frame() %>% 
+  group_by(time_calendar, birth_month, time_birth) %>% 
+  mutate(disease_mean = mean(disease)) %>% 
+  select(-c(waning, aging, infected, disease, births)) %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  left_join(dates %>% 
+              select(-level) %>% 
+              unique() %>% 
+              rename(time_calendar = time),
+            by = join_by(time_calendar)) %>% 
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024")), 
+                      labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
+                      right = FALSE)) %>% 
+  filter(!is.na(season)) %>% 
+  left_join(birth_age, by = join_by(time_calendar, birth_month, time_birth)) %>% 
+  group_by(time_birth, season, month) %>% 
+  summarise(disease = sum(disease_mean),
+            births = sum(births)) %>% 
+  ungroup() %>% 
+  mutate(attack_rate = (disease/births)*100000) %>% 
+  mutate(month = factor(month, levels = month.abb))
+
+
+fig <- ggplot() +
+  geom_tile(data = test %>% filter(season %in% c("2017_18", "2021_22", "2022_23")), aes(x = time_birth, y = month, fill = attack_rate)) +
+  scale_fill_viridis_c(option = "magma", direction = -1) +
+  labs(x = "Age (months)",
+       y = "Month of the year",
+       fill = "Annual RSV Disease Rate (per 100,000)") +
+  theme_classic() +
+  facet_wrap(~season, labeller = labeller(season = c("2017_18" = "2017-18", "2021_22" = "2021-22", "2022_23" = "2022-23"))) +
+  theme(strip.text = element_text(face = "bold", size = 12))
+fig
+
+# -------------------------------------------------------------------------
+
+# attack rate birth month/month of the year
+
+birth_data <- births %>% 
+  filter(year >= 2010) %>% 
+  mutate(time = 1:178) %>% 
+  filter(time %in% c((82-48):178))
+
+birth_age <- map(1:nrow(birth_data),
+                 function(x){
+                   data <- birth_data[x, ] %>% 
+                     uncount(weights = 48) %>% 
+                     mutate(time_calendar = as.numeric(birth_data[x, "time"]):(as.numeric(birth_data[x, "time"])+47),
+                            time_birth = 1:48)
+                   return(data)
+                 }) %>% 
+  do.call(rbind, .) %>% 
+  group_by(time_calendar, time_birth, birth_month) %>% 
+  summarise(births = sum(births)) %>% 
+  mutate(birth_month = as.numeric(birth_month))
+
+test <- do.call(rbind, traj) %>% 
+  as.data.frame() %>% 
+  group_by(time_calendar, birth_month, time_birth) %>% 
+  mutate(disease_mean = mean(disease)) %>% 
+  select(-c(waning, aging, infected, disease, births)) %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  left_join(dates %>% 
+              select(-level) %>% 
+              unique() %>% 
+              rename(time_calendar = time),
+            by = join_by(time_calendar)) %>% 
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024")), 
+                      labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
+                      right = FALSE)) %>% 
+  filter(!is.na(season)) %>% 
+  left_join(birth_age, by = join_by(time_calendar, birth_month, time_birth)) %>% 
+  group_by(time_birth, season, month) %>% 
+  summarise(disease = sum(disease_mean),
+            births = sum(births)) %>% 
+  ungroup() %>% 
+  mutate(attack_rate = (disease/births)*100000) %>% 
+  mutate(month = factor(month, levels = c(month.abb[7:12], month.abb[1:6])))
+
+
+fig <- ggplot() +
+  geom_tile(data = test %>% filter(season %in% c("2017_18", "2021_22", "2022_23")), aes(x = time_birth, y = month, fill = attack_rate)) +
+  scale_fill_viridis_c(option = "magma", direction = -1) +
+  labs(x = "Age (months)",
+       y = "Month of the year",
+       fill = "Annual RSV Disease Rate (per 100,000)") +
+  theme_classic() +
+  facet_wrap(~season, labeller = labeller(season = c("2017_18" = "2017-18", "2021_22" = "2021-22", "2022_23" = "2022-23"))) +
+  theme(strip.text = element_text(face = "bold", size = 12))
+fig
+
+# -------------------------------------------------------------------------
+
+# attack rate birth month/age/season
+
+birth_data <- births %>% 
+  filter(year >= 2010) %>% 
+  mutate(time = 1:178) %>% 
+  filter(time %in% c((82-48):178))
+
+birth_age <- map(1:nrow(birth_data),
+                 function(x){
+                   data <- birth_data[x, ] %>% 
+                     uncount(weights = 48) %>% 
+                     mutate(time_calendar = as.numeric(birth_data[x, "time"]):(as.numeric(birth_data[x, "time"])+47),
+                            time_birth = 1:48)
+                   return(data)
+                 }) %>% 
+  do.call(rbind, .) %>% 
+  filter(time_calendar %in% c(82:178)) %>% 
+  group_by(time_calendar, time_birth, birth_month) %>% 
+  summarise(births = sum(births)) %>% 
+  mutate(birth_month = as.numeric(birth_month))
+
+test <- do.call(rbind, traj) %>% 
+  as.data.frame() %>% 
+  group_by(time_calendar, birth_month, time_birth) %>% 
+  mutate(disease_mean = mean(disease)) %>% 
+  select(-c(waning, aging, infected, disease, births)) %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  left_join(dates %>% 
+              select(-level) %>% 
+              unique() %>% 
+              rename(time_calendar = time),
+            by = join_by(time_calendar)) %>% 
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024")), 
+                      labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
+                      right = FALSE)) %>% 
+  filter(!is.na(season)) %>% 
+  left_join(birth_age, by = join_by(time_calendar, birth_month, time_birth)) %>% 
+  group_by(time_birth, birth_month, season) %>% 
+  summarise(disease = sum(disease_mean),
+            births = sum(births)) %>% 
+  ungroup() %>% 
+  mutate(attack_rate = (disease/births)*100000,
+         birth_month = factor(birth_month, levels = 1:12, labels = month.abb)) 
+
+fig <- ggplot() +
+  geom_line(data = test %>% filter(season %in% c("2017_18", "2021_22", "2022_23")) %>% filter(birth_month %in% c("Jan", "May", "Sep")), aes(x = time_birth, y = attack_rate, group = birth_month, colour = birth_month)) +
+  scale_colour_viridis_d(option = "plasma") +
+  theme_classic() +
+  labs(x = "Age (Months)", y = "Annual RSV Disease Rate (per 100,000)", colour = "Birth Month") +
+  facet_wrap(~season, labeller = labeller(season = c("2017_18" = "2017-18", "2021_22" = "2021-22", "2022_23" = "2022-23"))) +
+  theme(strip.text = element_text(face = "bold", size = 12))
+fig
+
+# -------------------------------------------------------------------------
+
+# disease rate by immunity level and season
+
+birth_data <- babies %>% 
+  as.data.frame() %>% 
+  filter(time %in% c((82-48):178))
+
+birth_immunity <- map(1:nrow(birth_data),
+                      function(x){
+                        data <- birth_data[x, ] %>% 
+                          uncount(weights = 48) %>% 
+                          mutate(time_calendar = as.numeric(birth_data[x, "time"]):(as.numeric(birth_data[x, "time"])+47),
+                                 time_birth = 1:48)
+                        return(data)
+                      }) %>% 
+  do.call(rbind, .) %>% 
+  group_by(time_calendar, time_birth, birth_month) %>% 
+  summarise(across(c(`susceptible_reinf`:`I24`, `births`), sum, .names = "{.col}")) %>% 
+  mutate(birth_month = as.numeric(birth_month)) %>% 
+  select(-births) %>% 
+  pivot_longer(cols = c(`susceptible_reinf`:`I24`), names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
+  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24"))) %>%
+  mutate(level = case_when(last_exp %in% c(1:4) ~ "high",
+                           last_exp %in% c(5:7) ~ "low",
+                           last_exp %in% c(7:24, ">24") ~ "none")) %>% 
+  group_by(time_calendar, level) %>% 
+  summarise(births = sum(value))
+
+test <- do.call(rbind, traj) %>% 
+  as.data.frame() %>% 
+  select(-c(waning, aging, infected)) %>% 
+  group_by(time_calendar, birth_month, time_birth) %>% 
+  summarise(across(c(`susceptible_reinf`:`I24`, `disease`), mean, .names = "{.col}")) %>% 
+  ungroup() %>% 
+  left_join(dates %>% select(-c(rate, level)) %>% distinct() %>% rename(time_calendar = time), by = join_by(time_calendar)) %>% 
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024")), 
+                      labels = c("2017_18", "2018_19", "2019_20", "2020_21", "2021_22", "2022_23", "2023_24"), 
+                      right = FALSE)) %>% 
+  filter(!is.na(season)) %>% 
+  pivot_longer(cols = `susceptible_reinf`:`I24`, names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
+  mutate(last_exp = factor(last_exp, levels = c(1:24, ">24"))) %>% 
+  mutate(level = case_when(last_exp %in% c(1:4) ~ "high",
+                           last_exp %in% c(5:7) ~ "low",
+                           last_exp %in% c(7:24, ">24") ~ "none")) %>% 
+  group_by(time_calendar, yearmon, season, level) %>% 
+  summarise(disease = sum(value)) %>% 
+  left_join(birth_immunity) %>% 
+  ungroup() %>% 
+  group_by(time_calendar, yearmon, season, level) %>% 
+  summarise(disease = sum(disease),
+            births = sum(births)) %>% 
+  mutate(attack_rate = (disease/births)*100000)
+
+
+ggplot(data = test) +
+  geom_vline(xintercept = as.numeric(as.yearmon(c("Jul 2021", "Jul 2022"))), linetype = "dashed", color = "black", linewidth = 0.5) +
+  geom_rect(aes(xmin = as.numeric(as.yearmon("Jul 2021")), xmax = as.numeric(as.yearmon("Jul 2022")), ymin = -Inf, ymax = Inf), fill = "#FABA39FF", alpha = 0.01) +
+  geom_line(aes(x = yearmon, y = attack_rate, group = level, colour = level)) +
+  scale_colour_manual(values = c("#0B0405FF", "#357BA2FF", "#78D6AEFF"), labels = c("High", "Low", "None")) +  # Correct palette name
+  theme_classic() +
+  labs(x = "Time (months)", y = "Annual RSV Disease Rate (per 100,000)", colour = "Immunity level") # need to add detection rate?
