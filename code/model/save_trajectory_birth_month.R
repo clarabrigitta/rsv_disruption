@@ -97,7 +97,8 @@ traj_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha2
                 
               })
   
-  data <- do.call(rbind, data)[, c(1, 2, 29:34)] # unlist map output
+  data <- do.call(rbind, data) # unlist map output, keep all columns
+  # data <- do.call(rbind, data)[, c(1, 2, 29:34)] # unlist map output
   data <- data[data[, "time_calendar"] >= 82 & data[, "time_calendar"] <= 178, ] # selecting times to match Scottish rate data (Scottish data spans oct 2016 - dec 2024, but cutting off oct 2024 because of birth data)
   
   return(data)
