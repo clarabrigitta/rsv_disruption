@@ -1,4 +1,4 @@
-babies_function <- function(lambda, stored_data, delta, n_interest){
+save_trajectory_babies <- function(lambda, stored_data, delta, n_interest){
   
   # matrix key:
   # 1 = time
@@ -38,7 +38,7 @@ babies_function <- function(lambda, stored_data, delta, n_interest){
   
   # calculate number of babies born with an immunity profile based on births and proportion
   babies[, 3:(3+n_interest)] <- babies[, 3:(3+n_interest)] * babies[, 4+n_interest]
-  babies[, 3:(3+n_interest)] <- babies[, 3:(3+n_interest)] / babies[, 4+n_interest] *100
+  babies[, 3:(3+n_interest)] <- babies[, 3:(3+n_interest)] / babies[, 4+n_interest] * 100
   
   return(babies)
   

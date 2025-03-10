@@ -1,4 +1,4 @@
-women_function <- function(lambda, stored_data, delta, n_interest){
+save_trajectory_women <- function(lambda, stored_data, delta, n_interest){
   
   # matrix key:
   # 1 = time
