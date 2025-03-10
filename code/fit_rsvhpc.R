@@ -11,12 +11,6 @@ here()
 source(here("code", "model", "create_data.R"))
 source(here("code", "model", "create_combinations.R"))
 source(here("code", "model", "model_function.R"))
-source(here("code", "model", "save_trajectory.R"))
-source(here("code", "plot", "plot_trajectories.R"))
-source(here("code", "plot", "plot_hdi.R"))
-source(here("code", "plot", "plot_traceplot.R"))
-source(here("code", "plot", "plot_likelihood.R"))
-source(here("code", "plot", "plot_shapes.R"))
 
 n <- Sys.getenv("SLURM_ARRAY_TASK_ID")
 n <- as.integer(n)
@@ -92,7 +86,6 @@ setup <- createBayesianSetup(likelihood,
                              upper = combinations[[n]]$ub[combinations[[n]]$ind], 
                              names = combinations[[n]]$name[combinations[[n]]$ind])
 
-# settings = list(iterations = 10, nrChains = 1, message = TRUE)
 settings = list(iterations = 100000, nrChains = 1, message = TRUE, burnin = 50000) # don't thin for now
 
 # fit model and save output
@@ -106,14 +99,5 @@ out <- createMcmcSamplerList(results)
 
 dir.create(here("output", "data", "parameters", format(Sys.Date(), "%d%m%Y")))
 saveRDS(out, file = here("output", "data", "parameters", format(Sys.Date(), "%d%m%Y"), paste0("out", n, ".rds")))
-
-# compute trajectories
-# traj <- save_trajectory(out)
-
-# plot outputs
-# plot_traceplot(out)
-# plot_trajectories(traj)
-# plot_hdi(traj)
-# plot_shapes(out)
 
 print(paste("end iteration number", n, "time:", Sys.time()))
