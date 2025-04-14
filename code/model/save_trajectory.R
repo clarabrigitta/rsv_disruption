@@ -4,7 +4,7 @@ library(parallel)
 
 save_trajectory <- function(out){
   
-  posterior <- getSample(out, thin = 1000)
+  posterior <- getSample(out, thin = 100)
   fixed <- matrix(combinations[[n]]$fixed[!combinations[[n]]$ind],
                   nrow = nrow(posterior), 
                   ncol = sum(!combinations[[n]]$ind),
