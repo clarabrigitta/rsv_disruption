@@ -1,14 +1,20 @@
-source(here("code", "plot", "plot_traceplot.R"))
-source(here("code", "plot", "plot_shapes.R"))
+lapply(list.files(here("code", "plot"), pattern = "^plot.*\\.R$", full.names = TRUE), source)
+lapply(list.files(here("code", "model"), pattern = "^save.*\\.R$", full.names = TRUE), source)
+lapply(list.files(here("code", "model"), pattern = "^create.*\\.R$", full.names = TRUE), source)
 
+library(cowplot)
 
 # choose combination number
 n <- 17
+  
+rep = 30
+factor = combinations[[n]]$factor
 
 # extract posteriors
-out <- readRDS(here("output", "data", "parameters", "19022025", paste0("out", n, ".rds")))
+# out <- readRDS(here("output", "data", "parameters", "19022025", paste0("out", n, ".rds")))
+out <- readRDS(here("output", "data", "parameters", "15032025", paste0("out", n, ".rds")))
 
-posterior <- getSample(out, thin = 1000)
+posterior <- getSample(out, thin = 100)
 fixed <- matrix(combinations[[n]]$fixed[!combinations[[n]]$ind],
                 nrow = nrow(posterior), 
                 ncol = sum(!combinations[[n]]$ind),
@@ -59,10 +65,24 @@ birth_data <- read_excel(here("data", "monthly-births-october-24-tabs.xlsx"), sh
 # generate trajectory as model output
 traj <- save_trajectory(out)
 
+# generate trajectory of infection and disease
+traj_infection<- mclapply(1:nrow(posterior),
+                             function(r){
+                               output <- create_trajectory_infection(lambda = exp(posterior[r, "disruption"]),
+                                                                     theta1 = posterior[r, "inf_imm1"], theta2 = posterior[r, "inf_imm2"],
+                                                                     omega1 = posterior[r, "waning1"], omega2 = posterior[r, "waning2"],
+                                                                     alpha1 = posterior[r, "aging1"], alpha2 = posterior[r, "aging2"],
+                                                                     stored_data = save_data,
+                                                                     delta = 0.0075,
+                                                                     n_interest = duration)[, 1] * posterior[r, "detection"]
+                               return(output)
+                             },
+                             mc.cores = 4) 
+
 # generate trajectory with details (e.g., birth_month, etc.)
 traj_birth_month <- mclapply(1:nrow(posterior),
                  function(r){
-                   output <- save_trajectory_birth_month(lambda = exp(posterior[r, "disruption"]),
+                   output <- create_trajectory_birth_month(lambda = exp(posterior[r, "disruption"]),
                                            theta1 = posterior[r, "inf_imm1"], theta2 = posterior[r, "inf_imm2"],
                                            omega1 = posterior[r, "waning1"], omega2 = posterior[r, "waning2"],
                                            alpha1 = posterior[r, "aging1"], alpha2 = posterior[r, "aging2"],
@@ -75,13 +95,13 @@ traj_birth_month <- mclapply(1:nrow(posterior),
                  mc.cores = 4) 
 
 # generate maternal infection history
-traj_women <-save_trajectory_women(lambda = exp(-4.3),
+traj_women <-create_trajectory_women(lambda = exp(-4.3),
                         stored_data = save_data, 
                         delta = 0.0075,  
                         n_interest = duration)
 
 # generate immunity level proportion of children
-traj_babies <-save_trajectory_babies(lambda = exp(-4.3),
+traj_babies <-create_trajectory_babies(lambda = exp(-4.3),
                               stored_data = save_data, 
                               delta = 0.0075,  
                               n_interest = duration)
@@ -90,11 +110,18 @@ plot_traceplot(out)
 plot_shapes(out)
 
 plot_trajectories(traj)
-plot_hdi(traj)
+plot_hdi(traj, traj_infection)
 
 plot_age_month(traj_birth_month, birth_data)
 plot_age_season(traj_birth_month, birth_data)
-plot_age_birth_month(traj_birth_month, birth_data)
+# age_birth_month <-plot_age_birth_month(traj_birth_month, birth_data)
 
-plot_immunity_birth(traj_babies)
-plot_immunity_rate(traj_babies, traj_birth_month, birth_data)
+immunity_birth <- plot_immunity_birth(traj_babies)
+immunity_rate <- plot_immunity_rate(traj_babies, traj_birth_month)
+shapes_maternal <- plot_shapes_maternal(out)
+fig <- ((immunity_birth | shapes_maternal) + 
+          plot_layout(widths = c(1, 2))) / immunity_rate +  plot_annotation(tag_levels = "A")
+dir.create(here("output", "figures", "immunity", format(Sys.Date(), "%d%m%Y")))
+ggsave(filename = here("output", "figures", "immunity", format(Sys.Date(), "%d%m%Y"), paste0(n, ".png")), plot = fig, width = 13, height = 9, dpi = 300)
+
+ggsave(filename = here("output", "figures", "immunity", format(Sys.Date(), "%d%m%Y"), paste0(n, ".png")), plot = fig, width = 12, height = 8, dpi = 300)
