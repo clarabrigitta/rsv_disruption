@@ -20,7 +20,7 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
   women[, 2] <- women[, 2] + delta
   
   # subject rate to disruption factor lambda
-  women[303:313, 2] <-  women[303:313, 2] * lambda # period corresponding to March 2020 - January 2021
+  women[303:315, 2] <-  women[303:315, 2] * lambda # period corresponding to March 2020 - March 2021 = 315 (January 2021  = 313)
   
   # initial state
   women[1, 3] <- 1000000
@@ -65,7 +65,7 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
   stored_data[[3]] <- stored_data[[3]] + delta
   
   # apply lambda to rate vector
-  stored_data[[3]][123:133] <- stored_data[[3]][123:133] * lambda # period corresponding to March 2020 - January 2021
+  stored_data[[3]][123:135] <- stored_data[[3]][123:135] * lambda # period corresponding to March 2020 - March 2021 = 135 (January 2021 = 133)
   
   data <- map(1:nrow(babies),
               function(x){
