@@ -36,22 +36,32 @@ plot_age_month <- function(traj_birth_month, birth_data) {
                         right = FALSE)) %>% 
     filter(!is.na(season)) %>% 
     left_join(birth_age, by = join_by(time_calendar, birth_month, time_birth)) %>% 
-    group_by(time_birth, season, month) %>% 
+    group_by(time_birth, season) %>% 
     summarise(disease = sum(disease_mean),
               births = sum(births)) %>% 
     ungroup() %>% 
     mutate(attack_rate = (disease/births)*100000) %>% 
-    mutate(month = factor(month, levels = c(month.abb[7:12], month.abb[1:6])))
-  
+    select(-c(disease, births)) %>% 
+    pivot_wider(names_from = season, values_from = attack_rate) %>% 
+    select(-c("2018_19", "2019_20", "2020_21")) %>% 
+    mutate(across(`2021_22`:`2023_24`, 
+                  .fns = ~ ((.x - `2017_18`) / `2017_18`) * 100,
+                  .names = "{.col}")) %>% 
+    select(-`2017_18`) %>% 
+    pivot_longer(`2021_22`:`2023_24`, names_to = "season", values_to = "rel_change")
+
   fig <- ggplot() +
-    geom_tile(data = data %>% filter(season %in% c("2017_18", "2021_22", "2022_23")), aes(x = time_birth, y = month, fill = attack_rate)) +
+    geom_tile(data = data, aes(x = season, y = time_birth, fill = rel_change)) +
+    scale_y_continuous(breaks = seq(0, 48, by = 6)) +
+    scale_x_discrete(labels = c("2021_22" = "2021-22", "2022_23" = "2022-23", "2023_24" = "2023-24")) +
     scale_fill_viridis_c(option = "magma", direction = -1) +
-    labs(x = "Age (months)",
-         y = "Month of the year",
-         fill = "Annual RSV Disease Rate (per 100,000)") +
-    theme_classic() +
-    facet_wrap(~season, labeller = labeller(season = c("2017_18" = "2017-18", "2021_22" = "2021-22", "2022_23" = "2022-23"))) +
-    theme(strip.text = element_text(face = "bold", size = 12))\
+    labs(x = "Season",
+         y = "Age (months)",
+         fill = "Relative Change in\nAnnual Disease Rate\nCompared to the 2017-18\nSeason (%)") +
+    theme_classic()
+  
+  dir.create(here("output", "figures", "age", format(Sys.Date(), "%d%m%Y")))
+  ggsave(filename = here("output", "figures", "age", format(Sys.Date(), "%d%m%Y"), paste0(n, "month", ".png")), plot = fig, width = 7, height = 4, dpi = 300)
   
   return(fig)
 }

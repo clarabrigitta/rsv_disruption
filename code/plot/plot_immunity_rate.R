@@ -45,26 +45,24 @@ plot_immunity_rate <- function(traj_babies, traj_birth_month){
                              "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
                              "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1")) %>% 
     mutate(last_exp = factor(last_exp, levels = c(1:24, ">24"))) %>% 
-    mutate(level = case_when(last_exp %in% c(1:4) ~ "high",
-                             last_exp %in% c(5:7) ~ "low",
+    mutate(level = case_when(last_exp %in% c(1:3) ~ "high",
+                             last_exp %in% c(4:6) ~ "low",
                              last_exp %in% c(7:24, ">24") ~ "none")) %>% 
     group_by(time_calendar, yearmon, season, level) %>% 
     summarise(disease = sum(value)) %>% 
     left_join(birth_immunity) %>% 
     ungroup() %>% 
-    group_by(time_calendar, yearmon, season, level) %>% 
+    group_by(season, level) %>% 
     summarise(disease = sum(disease),
               births = sum(births)) %>% 
     mutate(attack_rate = (disease/births)*100000)
   
-  
-  fig <- ggplot(data = data) +
-    geom_vline(xintercept = as.numeric(as.yearmon(c("Jul 2021", "Jul 2022"))), linetype = "dashed", color = "black", linewidth = 0.5) +
-    geom_rect(aes(xmin = as.numeric(as.yearmon("Jul 2021")), xmax = as.numeric(as.yearmon("Jul 2022")), ymin = -Inf, ymax = Inf), fill = "#FABA39FF", alpha = 0.01) +
-    geom_line(aes(x = yearmon, y = attack_rate, group = level, colour = level)) +
-    scale_colour_manual(values = c("#0B0405FF", "#357BA2FF", "#78D6AEFF"), labels = c("High", "Low", "None")) +
+  fig <- ggplot() +
+    geom_bar(data = data %>% filter(season %in% c("2017_18", "2020_21", "2021_22", "2022_23", "2023_24")), aes(x = season, y = attack_rate, fill = level), stat = "identity", position = "dodge") +
+    scale_fill_manual(values = c("#0B0405FF", "#357BA2FF", "#78D6AEFF"), labels = c("High", "Low", "None")) + 
+    scale_x_discrete(labels = c("2017_18" = "2017-18", "2020_21" = "2020-21", "2021_22" = "2021-22", "2022_23" = "2022-23", "2023_24" = "2023-24")) +
     theme_classic() +
-    labs(x = "Time (months)", y = "Annual RSV Disease Rate (per 100,000)", colour = "Immunity level") 
+    labs(x = "Season", y = "Annual RSV Disease Rate (per 100,000)", fill = "Immunity level")
   
   return(fig)
 }
