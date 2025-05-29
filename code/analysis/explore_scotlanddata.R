@@ -234,16 +234,22 @@ rate_scot <- read.csv("./data/respiratory_age_20240515.csv") %>%
   group_by(yearmon, year, month) %>%
   summarise(RatePer100000 = mean(RatePer100000)) %>%
   ungroup() %>% 
-  mutate(rate_scot = (RatePer100000/1000)*300,
-         time = 745:(745+nrow(.)-1)) %>% 
-  slice(-(1:4))
+  mutate(rate_scot = (RatePer100000/1000)*200) %>% 
+  slice(-(1:4)) %>% 
+  group_by(month) %>% 
+  summarise(rate = round(mean(rate_scot), 2)) %>% 
+  mutate(month = factor(month, levels = c(7:12, 1:6))) %>% 
+  ungroup()
 
 saveRDS(rate_scot, file = "./output/data/prefitting/rate_scot.rds")
 
+ggplot(rate_scot) +
+  geom_line(data = rate_scot, aes(x = month, y = rate), group = 1)
+
 plot_ly() %>% 
   add_trace(data = rate_scot,
-            x = ~yearmon,
-            y = ~rate_scot,
+            x = ~month,
+            y = ~rate,
             type = 'scatter',
             mode = 'lines') %>% 
   layout(xaxis = list(title = 'Date', tickangle = -45), 
