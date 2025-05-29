@@ -30,10 +30,12 @@ plot_shapes <- function(out){
   maternal_data <- maternal_data %>% hdi() %>% rbind(mean = colMedians(maternal_data)) %>% t() %>% cbind(x_vals)
 
   maternal <- ggplot() +
-    geom_line(data = maternal_data, aes(x = x_vals, y = mean), colour = "red", size = 1) +
+    geom_line(data = maternal_data, aes(x = x_vals, y = mean), colour = "red", size = 1.5) +
     geom_ribbon(data = maternal_data, aes(x = x_vals, ymax = upper, ymin = lower), alpha = 0.4, linetype = 0) +
     labs(x = "Months since maternal infection", y = "Proportion of immunity at birth") +
     theme_bw() +
+    theme(axis.text=element_text(size=12),
+          axis.title=element_text(size=14)) +
     xlim(0, 25)
 
   x_vals <- seq(0, 48, length.out = 500)
@@ -47,10 +49,12 @@ plot_shapes <- function(out){
   waning_data <- waning_data %>% hdi() %>% rbind(mean = colMedians(waning_data)) %>% t() %>% cbind(x_vals)
 
   waning <- ggplot() +
-    geom_line(data = waning_data, aes(x = x_vals, y = mean), colour = "red", size = 1) +
+    geom_line(data = waning_data, aes(x = x_vals, y = mean), colour = "red", size = 1.5) +
     geom_ribbon(data = waning_data, aes(x = x_vals, ymax = upper, ymin = lower), alpha = 0.4, linetype = 0) +
     labs(x = "Age (months)", y = "Waning immunity") +
-    theme_bw()
+    theme_bw() +
+    theme(axis.text=element_text(size=12),
+          axis.title=element_text(size=14)) 
 
   x_vals <- seq(0, 48, length.out = 500)
 
@@ -63,10 +67,12 @@ plot_shapes <- function(out){
   aging_data <- aging_data %>% hdi() %>% rbind(mean = colMedians(aging_data)) %>% t() %>% cbind(x_vals)
 
   aging <- ggplot() +
-    geom_line(data = aging_data, aes(x = x_vals, y = mean), colour = "red", size = 1) +
+    geom_line(data = aging_data, aes(x = x_vals, y = mean), colour = "red", size = 1.5) +
     geom_ribbon(data = aging_data, aes(x = x_vals, ymax = upper, ymin = lower), alpha = 0.4, linetype = 0) +
     labs(x = "Age (months)", y = "Probability of disease") +
-    theme_bw()
+    theme_bw() +
+    theme(axis.text=element_text(size=12),
+          axis.title=element_text(size=14))
   
   # # alternative method (plot trajectory of mean and 95% CI parameter values)
   # parameters <- posterior %>% hdi() %>% rbind(mean = colMeans(posterior))
@@ -138,7 +144,11 @@ plot_shapes <- function(out){
          y = "Months since maternal infection",
          fill = "Probability of infection") +
     scale_y_continuous(limits = c(0, 8), breaks = seq(0, 10, 2)) + 
-    theme_minimal()
+    theme_bw() +
+    theme(axis.text=element_text(size=12),
+          axis.title=element_text(size=14),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 12)) 
   
   # probability of disease heatmap
   x_mother <- seq(0, 25, length.out = 500)
@@ -161,11 +171,15 @@ plot_shapes <- function(out){
          y = "Months since maternal infection",
          fill = "Probability of disease") +
     scale_y_continuous(limits = c(0, 8), breaks = seq(0, 10, 2)) + 
-    theme_minimal()
+    theme_bw() +
+    theme(axis.text=element_text(size=12),
+          axis.title=element_text(size=14),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 12)) 
   
-  fig <- (maternal + waning + aging) / (inf_heatmap + dis_heatmap) + plot_annotation(tag_levels = "A")
+  fig <- (maternal + waning + aging) / (inf_heatmap + dis_heatmap) + plot_annotation(tag_levels = "A") + theme(plot.tag = element_text(size = 14))
   
   dir.create(here("output", "figures", "shapes", format(Sys.Date(), "%d%m%Y")))
-  ggsave(filename = here("output", "figures", "shapes", format(Sys.Date(), "%d%m%Y"), paste0(n, ".png")), plot = fig, width = 12, height = 8, dpi = 300)
+  ggsave(filename = here("output", "figures", "shapes", format(Sys.Date(), "%d%m%Y"), paste0(n, ".png")), plot = fig, width = 13, height = 8, dpi = 300)
   
 }
