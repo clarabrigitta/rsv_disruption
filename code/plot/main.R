@@ -11,8 +11,7 @@ rep = 30
 factor = combinations[[n]]$factor
 
 # extract posteriors
-# out <- readRDS(here("output", "data", "parameters", "19022025", paste0("out", n, ".rds")))
-out <- readRDS(here("output", "data", "parameters", "15032025", paste0("out", n, ".rds")))
+out <- readRDS(here("output", "data", "parameters", "15032025*", paste0("out", n, ".rds")))
 
 posterior <- getSample(out, thin = 100)
 fixed <- matrix(combinations[[n]]$fixed[!combinations[[n]]$ind],
@@ -48,8 +47,13 @@ dates <- dates %>%
   mutate(rate = rate * factor) %>%
   filter(year >= 2010) %>%
   mutate(time = 1:n_distinct(time)) %>%
-  left_join(data.frame(level = rep(1:25, 228),
-                       time = rep(1:228, each = 25))) # model 15yrs of births (2010-2024)
+  mutate(season = cut(as.numeric(yearmon), 
+                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024", "Jul 2025", "Jul 2026", "Jul 2027", "Jul 2028")), 
+                      labels = c("2017-18", "2018-19", "2019-20", "2020-21", "2021-22", "2022-23", "2023-24", "2024-25", "2025-26", "2026-27", "2027-28"), 
+                      right = FALSE)) %>% 
+  rename(time_calendar = time)
+  # left_join(data.frame(level = rep(1:25, 228),
+  #                      time = rep(1:228, each = 25))) # model 15yrs of births (2010-2024)
 
 # monthly birth occurrences data (spans 1995 jan - 2024 oct)
 birth_data <- read_excel(here("data", "monthly-births-october-24-tabs.xlsx"), sheet = "Table_3", skip = 4) %>%
@@ -112,16 +116,19 @@ plot_shapes(out)
 plot_trajectories(traj)
 plot_hdi(traj, traj_infection)
 
-plot_age_month(traj_birth_month, birth_data)
+data <- do.call(rbind, traj) %>% 
+  as.data.frame() %>% 
+  t() %>% 
+  bind_cols(scotland_rate[, c(1, 2, 3)])
+
+# data taken from data from plot_hdi
+rmse_1to4_pre <- sqrt(mean(((scotland_rate %>% filter(age == "1-4 years", yearmon < "Mar 2020") %>% pull(count)) - (data %>% filter(age == "1-4 years", yearmon < "Mar 2020") %>% pull(median)))^2))
+rmse_1to4_post <- sqrt(mean(((scotland_rate %>% filter(age == "1-4 years", yearmon <= "Mar 2020") %>% pull(count)) - (data %>% filter(age == "1-4 years", yearmon <= "Mar 2020") %>% pull(median)))^2))
+
+rmse_under1s_pre <- sqrt(mean(((scotland_rate %>% filter(age == "<1 years", yearmon < "Mar 2020") %>% pull(count)) - (data %>% filter(age == "<1 years", yearmon < "Mar 2020") %>% pull(median)))^2))
+rmse_under1s_post <- sqrt(mean(((scotland_rate %>% filter(age == "<1 years", yearmon <= "Mar 2020") %>% pull(count)) - (data %>% filter(age == "<1 years", yearmon <= "Mar 2020") %>% pull(median)))^2))
+
+sum(data %>% filter(age == "<1 years") %>% pull(median))/sum(data %>% filter(age == "<1 years") %>% pull(median_inf))
+sum(data %>% filter(age == "1-4 years") %>% pull(median))/sum(data %>% filter(age == "1-4 years") %>% pull(median_inf))
+
 plot_age_season(traj_birth_month, birth_data)
-# age_birth_month <-plot_age_birth_month(traj_birth_month, birth_data)
-
-immunity_birth <- plot_immunity_birth(traj_babies)
-immunity_rate <- plot_immunity_rate(traj_babies, traj_birth_month)
-shapes_maternal <- plot_shapes_maternal(out)
-fig <- ((immunity_birth | shapes_maternal) + 
-          plot_layout(widths = c(1, 2))) / immunity_rate +  plot_annotation(tag_levels = "A")
-dir.create(here("output", "figures", "immunity", format(Sys.Date(), "%d%m%Y")))
-ggsave(filename = here("output", "figures", "immunity", format(Sys.Date(), "%d%m%Y"), paste0(n, ".png")), plot = fig, width = 13, height = 9, dpi = 300)
-
-ggsave(filename = here("output", "figures", "immunity", format(Sys.Date(), "%d%m%Y"), paste0(n, ".png")), plot = fig, width = 12, height = 8, dpi = 300)
