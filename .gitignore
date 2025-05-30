@@ -4,3 +4,10 @@
 .Ruserdata
 .DS_Store
 .html
+# Ignore everything inside output/data and output/figures
+output/data/*
+output/figures/*
+
+# But keep the folders themselves
+!output/data/
+!output/figures/
