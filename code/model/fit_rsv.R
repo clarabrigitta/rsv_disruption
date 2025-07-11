@@ -47,7 +47,7 @@ scotland_rate <- read.csv(here("data", "respiratory_age_20241218.csv")) %>%
 # create combinations to run
 combinations <- create_combinations()
 
-for(n in 22:length(combinations)){
+for(n in c(17, 19:21)){
   
   # set duration of maternal immunity
   duration = combinations[[n]]$duration
