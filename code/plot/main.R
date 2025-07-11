@@ -1,31 +1,9 @@
-lapply(list.files(here("code", "plot"), pattern = "^plot.*\\.R$", full.names = TRUE), source)
-lapply(list.files(here("code", "model"), pattern = "^save.*\\.R$", full.names = TRUE), source)
-lapply(list.files(here("code", "model"), pattern = "^create.*\\.R$", full.names = TRUE), source)
-
 library(cowplot)
 
-# choose combination number
-n <- 17
-  
-rep = 30
-factor = combinations[[n]]$factor
-
-# extract posteriors
-out <- readRDS(here("output", "data", "parameters", "15032025*", paste0("out", n, ".rds")))
-
-posterior <- getSample(out, thin = 100)
-fixed <- matrix(combinations[[n]]$fixed[!combinations[[n]]$ind],
-                nrow = nrow(posterior), 
-                ncol = sum(!combinations[[n]]$ind),
-                byrow = TRUE,
-                dimnames = list(NULL, combinations[[n]]$name[!combinations[[n]]$ind]))
-posterior <- cbind(posterior, fixed)
-
-# set duration of maternal immunity
-duration = combinations[[n]]$duration
-
-# create fixed datasets
-save_data <- create_data(n_interest = duration, rep = 30, factor = combinations[[n]]$factor)
+n <- 17 # choose combination number
+rep = 30 # number of years
+factor = combinations[[n]]$factor # select factor for rate of exposure
+n_interest <- combinations[[n]]$duration # duration of immunity in mothers
 
 # helper data frame for dates and rates (without any disruption) to model babies - 2010 until 2024
 dates <- as.data.frame(matrix(NA, 12*(rep+4), 6)) # add 4 years to account for modelling children until 4 years old
@@ -52,8 +30,6 @@ dates <- dates %>%
                       labels = c("2017-18", "2018-19", "2019-20", "2020-21", "2021-22", "2022-23", "2023-24", "2024-25", "2025-26", "2026-27", "2027-28"), 
                       right = FALSE)) %>% 
   rename(time_calendar = time)
-  # left_join(data.frame(level = rep(1:25, 228),
-  #                      time = rep(1:228, each = 25))) # model 15yrs of births (2010-2024)
 
 # monthly birth occurrences data (spans 1995 jan - 2024 oct)
 birth_data <- read_excel(here("data", "monthly-births-october-24-tabs.xlsx"), sheet = "Table_3", skip = 4) %>%
@@ -65,6 +41,29 @@ birth_data <- read_excel(here("data", "monthly-births-october-24-tabs.xlsx"), sh
          date = as.Date(yearmon),
          birth_month = format(as.Date(date, format = "%Y-%B-%d"), "%m")) %>%
   arrange(yearmon)
+
+# laod helper scripts for intermediate data sets
+lapply(list.files(here("code", "plot"), pattern = "^plot.*\\.R$", full.names = TRUE), source)
+lapply(list.files(here("code", "model"), pattern = "^save.*\\.R$", full.names = TRUE), source)
+lapply(list.files(here("code", "model"), pattern = "^create.*\\.R$", full.names = TRUE), source)
+
+# extract posteriors
+out <- readRDS(here("output", "data", "parameters", "15032025*", paste0("out", n, ".rds")))
+
+posterior <- getSample(out, thin = 100)
+posterior <- posterior[1:2000, ]
+fixed <- matrix(combinations[[n]]$fixed[!combinations[[n]]$ind],
+                nrow = nrow(posterior), 
+                ncol = sum(!combinations[[n]]$ind),
+                byrow = TRUE,
+                dimnames = list(NULL, combinations[[n]]$name[!combinations[[n]]$ind]))
+posterior <- cbind(posterior, fixed)
+
+# set duration of maternal immunity
+duration = combinations[[n]]$duration
+
+# create fixed datasets
+save_data <- create_data(n_interest = duration, rep = 30, factor = combinations[[n]]$factor)
 
 # generate trajectory as model output
 traj <- save_trajectory(out)
@@ -83,6 +82,41 @@ traj_infection<- mclapply(1:nrow(posterior),
                              },
                              mc.cores = 4) 
 
+plot_hdi(traj, traj_infection)
+
+risk <- do.call(rbind, traj) %>% 
+  as.data.frame() %>% 
+  select(1:97) %>% 
+  rowSums() %>% 
+  bind_cols(do.call(rbind, traj_infection) %>% 
+              as.data.frame() %>% 
+              select(1:97) %>%
+              rowSums()) %>% 
+  rename(disease = `...1`, infection = `...2`) %>% 
+  mutate(risk = disease / infection,
+         age = "1-4 years") %>% 
+  bind_rows(do.call(rbind, traj) %>% 
+              as.data.frame() %>% 
+              select(98:194) %>% 
+              rowSums() %>% 
+              bind_cols(do.call(rbind, traj_infection) %>% 
+                          as.data.frame() %>% 
+                          select(98:194) %>%
+                          rowSums()) %>% 
+              rename(disease = `...1`, infection = `...2`) %>% 
+              mutate(risk = disease / infection,
+                     age = "<1 years")) %>% 
+  group_by(age) %>% 
+  summarise(mean = mean(risk),
+            lower = hdi(risk)[[1]],
+            upper = hdi(risk)[[2]])
+
+plot_shapes(out)
+
+# parameter estimates summary statistics
+colMedians(posterior)
+hdi(posterior)
+
 # generate trajectory with details (e.g., birth_month, etc.)
 traj_birth_month <- mclapply(1:nrow(posterior),
                  function(r){
@@ -93,42 +127,13 @@ traj_birth_month <- mclapply(1:nrow(posterior),
                                            stored_data = save_data,
                                            delta = 0.0075,
                                            n_interest = duration)
-                   output[, c(3:27, 34)] <- output[, c(3:27, 34)] * posterior[r, "detection"]
+                   output[, c(3:(3+n_interest), (10+n_interest))] <- output[, c(3:(3+n_interest), (10+n_interest))] * posterior[r, "detection"]
                    return(output)
                  },
                  mc.cores = 4) 
 
-# generate maternal infection history
-traj_women <-create_trajectory_women(lambda = exp(-4.3),
-                        stored_data = save_data, 
-                        delta = 0.0075,  
-                        n_interest = duration)
-
-# generate immunity level proportion of children
-traj_babies <-create_trajectory_babies(lambda = exp(-4.3),
-                              stored_data = save_data, 
-                              delta = 0.0075,  
-                              n_interest = duration)
-
-plot_traceplot(out)
-plot_shapes(out)
-
-plot_trajectories(traj)
-plot_hdi(traj, traj_infection)
-
-data <- do.call(rbind, traj) %>% 
-  as.data.frame() %>% 
-  t() %>% 
-  bind_cols(scotland_rate[, c(1, 2, 3)])
-
-# data taken from data from plot_hdi
-rmse_1to4_pre <- sqrt(mean(((scotland_rate %>% filter(age == "1-4 years", yearmon < "Mar 2020") %>% pull(count)) - (data %>% filter(age == "1-4 years", yearmon < "Mar 2020") %>% pull(median)))^2))
-rmse_1to4_post <- sqrt(mean(((scotland_rate %>% filter(age == "1-4 years", yearmon <= "Mar 2020") %>% pull(count)) - (data %>% filter(age == "1-4 years", yearmon <= "Mar 2020") %>% pull(median)))^2))
-
-rmse_under1s_pre <- sqrt(mean(((scotland_rate %>% filter(age == "<1 years", yearmon < "Mar 2020") %>% pull(count)) - (data %>% filter(age == "<1 years", yearmon < "Mar 2020") %>% pull(median)))^2))
-rmse_under1s_post <- sqrt(mean(((scotland_rate %>% filter(age == "<1 years", yearmon <= "Mar 2020") %>% pull(count)) - (data %>% filter(age == "<1 years", yearmon <= "Mar 2020") %>% pull(median)))^2))
-
-sum(data %>% filter(age == "<1 years") %>% pull(median))/sum(data %>% filter(age == "<1 years") %>% pull(median_inf))
-sum(data %>% filter(age == "1-4 years") %>% pull(median))/sum(data %>% filter(age == "1-4 years") %>% pull(median_inf))
-
 plot_age_season(traj_birth_month, birth_data)
+
+# additional plots for exploration
+plot_traceplot(out)
+plot_trajectories(traj)
