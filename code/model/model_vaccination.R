@@ -64,7 +64,7 @@ create_data <- function(n_interest, rep = 30, factor){
 
   birth_extended <- bind_rows(birth_data, 
                               dates %>% 
-                                select(-c(rate, level, time, month_num)) %>% 
+                                select(-c(rate, month_num)) %>% 
                                 distinct() %>% filter(yearmon > "Feb 2025") %>% 
                                 mutate(month = month.name[match(month, month.abb)])) %>% 
     mutate(birth_month = as.numeric(format(as.Date(date, format = "%Y-%B-%d"), "%m"))) %>% 
@@ -103,10 +103,10 @@ create_data <- function(n_interest, rep = 30, factor){
   empty <- as.matrix(empty)
   
   # vector of monthly rates
-  rate_vector <- dates %>% select(-level) %>% distinct() %>% select(rate) %>% pull()
+  rate_vector <- dates %>% distinct() %>% select(rate) %>% pull()
   
   # vector of levels
-  level <- c(n_interest+1, 1:n_interest, 2)
+  level <- c(n_interest+1, 1:n_interest, 2) # change to 3 if vaccinated at month 6, otherwise 2 if vaccinated at month 7
   
   # put all data into a list
   save_data <- list(women_mat, empty, rate_vector, level)
@@ -117,30 +117,18 @@ create_data <- function(n_interest, rep = 30, factor){
 save_data <- create_data(n_interest = duration, rep = 30, factor = combinations[[n]]$factor)
 
 # -------------------------------------------------------------------------
-# calculating posterior medians of parameters
+# load posteriors
 
 out <- readRDS(here("output", "data", "parameters", "15032025*", paste0("out", n, ".rds")))
 
 posterior <- getSample(out, thin = 100)
+posterior <- posterior[1:2000, ]
 fixed <- matrix(combinations[[n]]$fixed[!combinations[[n]]$ind],
                 nrow = nrow(posterior), 
                 ncol = sum(!combinations[[n]]$ind),
                 byrow = TRUE,
                 dimnames = list(NULL, combinations[[n]]$name[!combinations[[n]]$ind]))
 posterior <- cbind(posterior, fixed)
-
-# posterior <- colMedians(posterior)
-# 
-# lambda = exp(posterior["disruption"])
-# theta1 = posterior["inf_imm1"]
-# theta2 = posterior["inf_imm2"]
-# omega1 = posterior["waning1"]
-# omega2 = posterior["waning2"]
-# alpha1 = posterior["aging1"]
-# alpha2 = posterior["aging2"]
-# stored_data = save_data
-# delta = 0.0075
-# n_interest = duration
 
 # -------------------------------------------------------------------------
 # create functions for projection
@@ -307,37 +295,29 @@ create_projection_birth_month <- function(lambda, theta1, theta2, omega1, omega2
 }
 
 # -------------------------------------------------------------------------
-# # to be used if we want to calculate rates (need denominator of population)
-#
-# projection_babies <- create_projection_babies(lambda = exp(-4.3),
-#                                               stored_data = save_data, 
-#                                               delta = 0.0075,  
-#                                               n_interest = duration)
-# 
-# birth_data <- projection_babies %>% 
-#   as.data.frame()
-# 
-# birth_immunity <- map(1:nrow(birth_data),
-#                       function(x){
-#                         data <- birth_data[x, ] %>% 
-#                           uncount(weights = 48) %>% 
-#                           mutate(time_calendar = as.numeric(birth_data[x, "time"]):(as.numeric(birth_data[x, "time"])+47),
-#                                  time_birth = 1:48)
-#                         return(data)
-#                       }) %>% 
-#   do.call(rbind, .) %>% 
-#   group_by(time_calendar, time_birth) %>% 
-#   summarise(across(c(`susceptible_reinf`:`vaccinated`, `births`), sum, .names = "{.col}")) %>% 
-#   select(-births) %>% 
-#   pivot_longer(cols = c(`susceptible_reinf`:`vaccinated`), names_to = "last_exp") %>% 
-#   mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
-#                            "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
-#                            "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1", "vaccinated" = "V")) %>% 
-#   mutate(last_exp = factor(last_exp, levels = c("V", 1:24, ">24"))) %>%
-#   mutate(level = case_when(last_exp %in% c(1:24, ">24") ~ "unvaccinated",
-#                            last_exp == "V" ~ "vaccinated")) %>%
-#   group_by(time_calendar, time_birth, level) %>% 
-#   summarise(births = sum(value)) 
+# to be used if we want to calculate rates (need denominator of population)
+
+projection_babies <- create_projection_babies(lambda = exp(-4.3),
+                                              stored_data = save_data,
+                                              delta = 0.0075,
+                                              n_interest = duration) %>% 
+  as.data.frame() %>% 
+  pivot_longer(cols = c(`susceptible_reinf`:`vaccinated`), names_to = "last_exp") %>% 
+  mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
+                           "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
+                           "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1", "vaccinated" = "V")) %>% 
+  mutate(level = case_when(last_exp %in% c(4:24, ">24") ~ "no immunity",
+                           last_exp %in% c(1:3, "V") ~ "immunity")) %>% 
+  rename(time_calendar = time) %>% 
+  left_join(dates[, c("time_calendar", "season")]) %>% 
+  filter(!is.na(season)) %>% 
+  group_by(season, level, births) %>% 
+  summarise(value = sum(value)) %>% 
+  ungroup() %>% 
+  group_by(season, level) %>% 
+  summarise(births = sum(births),
+            value = sum(value)) %>% 
+  mutate(perc = value/births*100)
 
 # -------------------------------------------------------------------------
 # run model
@@ -570,37 +550,6 @@ create_projection_birth_month <- function(lambda, theta1, theta2, omega1, omega2
   
 }
 
-# # to be used if we need rates (need denominator)
-# projection_babies <- create_projection_babies(lambda = exp(-4.3),
-#                                               stored_data = save_data, 
-#                                               delta = 0.0075,  
-#                                               n_interest = duration)
-# 
-# birth_data <- projection_babies %>% 
-#   as.data.frame()
-# 
-# birth_immunity <- map(1:nrow(birth_data),
-#                       function(x){
-#                         data <- birth_data[x, ] %>% 
-#                           uncount(weights = 48) %>% 
-#                           mutate(time_calendar = as.numeric(birth_data[x, "time"]):(as.numeric(birth_data[x, "time"])+47),
-#                                  time_birth = 1:48)
-#                         return(data)
-#                       }) %>% 
-#   do.call(rbind, .) %>% 
-#   group_by(time_calendar, time_birth) %>% 
-#   summarise(across(c(`susceptible_reinf`:`vaccinated`, `births`), sum, .names = "{.col}")) %>% 
-#   select(-births) %>% 
-#   pivot_longer(cols = c(`susceptible_reinf`:`vaccinated`), names_to = "last_exp") %>% 
-#   mutate(last_exp = recode(last_exp, "susceptible_reinf" = ">24", "I24" = "24", "I23" = "23", "I22" = "22", "I21" = "21", "I20" = "20", "I19" = "19", "I18" = "18",
-#                            "I17" = "17", "I16" = "16", "I15" = "15", "I14" = "14", "I13" = "13", "I12" = "12", "I11" = "11", "I10" = "10", "I9" = "9", "I8" = "8",
-#                            "I7" = "7", "I6" = "6", "I5" = "5", "I4" = "4", "I3" = "3", "I2" = "2", "I1" = "1", "vaccinated" = "V")) %>% 
-#   mutate(last_exp = factor(last_exp, levels = c("V", 1:24, ">24"))) %>%
-#   mutate(level = case_when(last_exp %in% c(1:24, ">24") ~ "unvaccinated",
-#                            last_exp == "V" ~ "vaccinated")) %>%
-#   group_by(time_calendar, time_birth, level) %>% 
-#   summarise(births = sum(value)) 
-
 # run model with no vaccination
 novacc_birth_month <- mclapply(1:nrow(posterior),
                                    function(r){
@@ -618,39 +567,45 @@ novacc_birth_month <- mclapply(1:nrow(posterior),
 # -------------------------------------------------------------------------
 # data wrangling vaccination scenario to calculate cumulative disease 
 
-vaccination <- lapply(projection_birth_month, function(x) {
-  as.data.frame(x)[, c("time_calendar", "time_birth", "disease")] %>%
-    group_by(time_calendar) %>%
+vaccination <- lapply(seq_along(projection_birth_month), function(i) {
+  as.data.frame(projection_birth_month[[i]])[, c("time_calendar", "time_birth", "disease")] %>%
+    filter(time_birth <= 6) %>% 
+    group_by(time_calendar) %>% 
     summarise(disease = sum(disease)) %>%
+    filter(time_calendar >= 175) %>% 
     arrange(time_calendar) %>%
-    mutate(cum = cumsum(disease))
+    mutate(cum = cumsum(disease),
+           iter = i)
   })
 vaccination <- rbindlist(vaccination)
 vaccination <- rename(vaccination, disease_vacc = disease, cum_vacc = cum)
 
 # data wrangling no vaccination scenario to calculate cumulative disease
-counterfactual <- lapply(novacc_birth_month, function(x) {
-  as.data.frame(x)[, c("time_calendar", "time_birth", "disease")] %>%
-    group_by(time_calendar) %>%
+counterfactual <- lapply(seq_along(novacc_birth_month), function(i) {
+  as.data.frame(novacc_birth_month[[i]])[, c("time_calendar", "time_birth", "disease")] %>%
+    filter(time_birth <= 6) %>% 
+    group_by(time_calendar) %>% 
     summarise(disease = sum(disease)) %>%
+    filter(time_calendar >= 175) %>% 
     arrange(time_calendar) %>%
-    mutate(cum = cumsum(disease))
+    mutate(cum = cumsum(disease),
+           iter = i)
   })
 counterfactual <- rbindlist(counterfactual)
 counterfactual <- rename(counterfactual, disease_novacc = disease, cum_novacc = cum)
 
 # -------------------------------------------------------------------------
-# calculate disease averted and associated hdi
-cases_averted <- cbind(vaccination, counterfactual[, -c("time_calendar")])
-cases_averted <- cases_averted %>% 
-  mutate(cum_averted = cum_novacc - cum_vacc) %>% 
-  group_by(time_calendar) %>% 
-  summarise(mean = mean(cum_averted),
-            lower = hdi(cum_averted)[[1]],
-            upper = hdi(cum_averted)[[2]]) %>% 
+# percentage reduction
+season_reduction <- cbind(vaccination, counterfactual[, -c("time_calendar", "iter")])
+season_reduction <- season_reduction %>% 
   left_join(dates %>% select(-rate), by = join_by(time_calendar)) %>% 
-  mutate(season = cut(as.numeric(yearmon), 
-                      breaks = as.yearmon(c("Jul 2017", "Jul 2018", "Jul 2019", "Jul 2020", "Jul 2021", "Jul 2022", "Jul 2023", "Jul 2024", "Jul 2025", "Jul 2026", "Jul 2027", "Jul 2028")), 
-                      labels = c("2017-18", "2018-19", "2019-20", "2020-21", "2021-22", "2022-23", "2023-24", "2024-25", "2025-26", "2026-27", "2027-28"), 
-                      right = FALSE)) %>% 
-  filter(!is.na(season)) 
+  filter(!is.na(season)) %>% 
+  group_by(season, iter) %>% 
+  summarise(disease_novacc = sum(disease_novacc),
+            disease_vacc = sum(disease_vacc),
+            .groups = "drop") %>% 
+  mutate(perc = ((disease_novacc - disease_vacc)/disease_novacc)*100) %>% 
+  group_by(season) %>% 
+  summarise(mean = mean(perc, na.rm = TRUE),
+            lower = hdi(perc)[[1]],
+            upper = hdi(perc)[[2]])
