@@ -41,26 +41,21 @@ count_total <- total %>%
         legend.text = element_text(size = 12))
 
 # -------------------------------------------------------------------------
-# plot cases averted total and split by age group
-
-count_averted <- cases_averted %>%
-  filter(yearmon >= "Jul 2024") %>% 
+# plot percentage reduction
+reduction_plot <- season_reduction %>%
   ggplot() +
-  geom_line(aes(x = yearmon, y = mean)) +
-  geom_ribbon(aes(x = yearmon, ymax = upper, ymin = lower), alpha = 0.2, linetype = 0) +  
-  geom_vline(xintercept = as.numeric(as.yearmon(c("Sep 2024"))), linetype = "dashed", color = "red", linewidth = 0.5) +
-  scale_x_yearmon(n = 12, format = "%b %Y") +
+  geom_bar(aes(x = season, y = mean, fill = season), stat = "identity") + 
+  geom_errorbar(aes(x = season, ymin = lower, ymax = upper), width = 0.2) +
+  scale_fill_manual(values = c("2024-25" = "#18DEC1FF", "2025-26" = "#3AA2FCFF", "2026-27" = "#455ED2FF", "2027-28" = "#30123BFF")) + 
   theme_bw() +
-  labs(x = "Time (months)", y = "Number of RSV Disease\nCases Averted") +
+  labs(x = "Season", y = "Percentage Reduction in\nRSV Disease Cases ≤6mos") +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=14),
         strip.text = element_text(size = 14, face = "bold"),
-        legend.title = element_text(size = 12),
-        legend.text = element_text(size = 12),
-        axis.text.x = element_text(angle = 45, hjust = 1))
+        legend.position = "none")
 
 # -------------------------------------------------------------------------
-# final plot
-
-fig <- (count_total  | count_averted) / count_split +  plot_annotation(tag_levels = "A") + theme(plot.tag = element_text(size = 14))
-ggsave(filename = here("output", "figures", "vaccination.png"), plot = fig, width = 13, height = 9, dpi = 300)
+# save plot
+fig <- (count_total  | reduction_plot) / count_split +  plot_annotation(tag_levels = "A") + theme(plot.tag = element_text(size = 14))
+dir.create(here("output", "figures", "vaccination", format(Sys.Date(), "%d%m%Y")))
+ggsave(filename = here("output", "figures", "vaccination", format(Sys.Date(), "%d%m%Y"), "vaccination7.png"), plot = fig, width = 13, height = 9, dpi = 300)
