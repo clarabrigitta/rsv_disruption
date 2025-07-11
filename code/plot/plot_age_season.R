@@ -1,3 +1,5 @@
+library(data.table)
+
 plot_age_season <- function(traj_birth_month, birth_data){
 
   birth_data <- birth_data %>% 
