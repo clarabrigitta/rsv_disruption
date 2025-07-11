@@ -72,7 +72,7 @@ create_trajectory_birth_month <- function(lambda, theta1, theta2, omega1, omega2
                 
                 subdata <- stored_data[[2]]
                 subdata[1, 1:(5+n_interest)] <- babies[x, ]
-                subdata[, 29] <- babies[x, 29]
+                subdata[, (5+n_interest)] <- babies[x, (5+n_interest)]
                 subdata[, 1] <- x:(x+12*4)
                 subdata[, 2] <- stored_data[[3]][x:(x+12*4)]
                 subdata <- cbind(subdata,
