@@ -114,7 +114,7 @@ risk <- do.call(rbind, traj) %>%
 plot_shapes(out)
 
 # parameter estimates summary statistics
-colMedians(posterior)
+colMeans(posterior)
 hdi(posterior)
 
 # generate trajectory with details (e.g., birth_month, etc.)
