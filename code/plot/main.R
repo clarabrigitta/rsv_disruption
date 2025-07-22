@@ -1,4 +1,7 @@
 library(cowplot)
+library(dplyr)
+library(readxl)
+library(zoo)
 
 n <- 17 # choose combination number
 rep = 30 # number of years
