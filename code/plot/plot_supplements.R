@@ -1,3 +1,5 @@
+library(patchwork)
+
 # extract posteriors for sensitivity analysis on duration of immunity
 n = 19
 out <- readRDS(here("output", "data", "parameters", "15032025*", paste0("out", n, ".rds")))
@@ -71,7 +73,7 @@ rate <- ((dates %>%
                                                           theme(axis.text=element_text(size=12),
                                                                 axis.title=element_text(size=14))) + plot_annotation(tag_levels = "A"))
 
-births <- birth_data %>% 
+births <- (birth_data %>% 
   filter(yearmon >= "Jan 2010") %>% 
   ggplot() +
   geom_line(aes(x = yearmon, y = births)) +
@@ -83,7 +85,19 @@ births <- birth_data %>%
        y = "Number of births") +
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=14),
-        axis.text.x = element_text(angle = 45, hjust = 1))
+        axis.text.x = element_text(angle = 45, hjust = 1))) / (feb_data %>% 
+  filter(yearmon >= "Jan 2010") %>% 
+  ggplot() +
+  geom_line(aes(x = yearmon, y = births)) +
+  theme_bw() +
+  scale_x_yearmon(breaks = seq(from = as.yearmon("Jan 2010"), 
+                               to = as.yearmon("Feb 2025"), 
+                               by = 1)) +
+  labs(x = "Time (months)",
+       y = "Number of births") +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14),
+        axis.text.x = element_text(angle = 45, hjust = 1))) +  plot_annotation(tag_levels = "A") + theme(plot.tag = element_text(size = 14))
 
 sensitivity_duration <- posterior %>% 
   as.data.frame() %>% 
@@ -120,5 +134,5 @@ sensitivity_duration <- posterior %>%
 
 dir.create(here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y")))
 ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "rate.png"), plot = rate, width = 10, height = 7, dpi = 300)
-ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "births.png"), plot = births, width = 10, height = 6, dpi = 300)
+ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "births.png"), plot = births, width = 8, height = 6, dpi = 300)
 ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "sensitivity_duration.png"), plot = sensitivity_duration, width = 10, height = 6, dpi = 300)
