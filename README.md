@@ -1,4 +1,4 @@
-# Maternal Immunity as a Driver of Age-Specific RSV Disease
+# Maternal Immunity Drives Age-Specific RSV Disease
 
 This repository contains the code and data for modelling the effects of maternally-derived immunity on age-specific patterns of RSV (Respiratory Syncytial Virus) disease in children, using Scottish surveillance data. The project explores baseline transmission dynamics, the impact of maternal vaccination, and sensitivity analyses.
 
