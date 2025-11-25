@@ -15,13 +15,13 @@ save_trajectory <- function(out){
   
   traj <- mclapply(1:nrow(posterior),
                    function(r){
-                     model_function(lambda = exp(posterior[r, "disruption"]), 
-                                    theta1 = posterior[r, "inf_imm1"], theta2 = posterior[r, "inf_imm2"], 
-                                    omega1 = posterior[r, "waning1"], omega2 = posterior[r, "waning2"], 
-                                    alpha1 = posterior[r, "aging1"], alpha2 = posterior[r, "aging2"], 
+                     model_function(lambda = exp(unlist(posterior[r, "disruption"])), 
+                                    theta1 = as.numeric(posterior[r, "inf_imm1"]), theta2 = as.numeric(posterior[r, "inf_imm2"]), 
+                                    omega1 = as.numeric(posterior[r, "waning1"]), omega2 = as.numeric(posterior[r, "waning2"]), 
+                                    alpha1 = as.numeric(posterior[r, "aging1"]), alpha2 = as.numeric(posterior[r, "aging2"]), 
                                     stored_data = save_data, 
                                     delta = 0.0075,  
-                                    n_interest = duration)[, 1] * posterior[r, "detection"]
+                                    n_interest = duration)[, 1] * as.numeric(posterior[r, "detection"])
                    },
                    mc.cores = 4)
   
