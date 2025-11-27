@@ -47,8 +47,8 @@ scotland_rate <- read.csv(here("data", "respiratory_age_20241218.csv")) %>%
 # create combinations to run
 combinations <- create_combinations()
 
-for(n in c(17, 19:21)){
-  
+for(n in c(37)){
+  n <- 17
   # set duration of maternal immunity
   duration = combinations[[n]]$duration
   
@@ -65,17 +65,26 @@ for(n in c(17, 19:21)){
     fixed_params <- as.list(combinations[[n]]$fixed[!combinations[[n]]$ind])
     names(fixed_params) <- combinations[[n]]$name[!combinations[[n]]$ind]
     combined_params <- c(params, fixed_params)
-    
+
+    model_pred <- model_function(
+      lambda = combined_params$disruption,
+      theta1 = combined_params$inf_imm1, theta2 = combined_params$inf_imm2,
+      omega1 = combined_params$waning1, omega2 = combined_params$waning2, 
+      alpha1 = combined_params$aging1, alpha2 = combined_params$aging2, 
+      stored_data = save_data, 
+      delta = 0.0075, 
+      n_interest = duration)[, 1] * combined_params$detection
+
+  #  cat("Model predictions: ", round(model_pred, 0), "\n")
+
     likelihood <- dpois(round(scotland_rate$count, digits = 0),
-                        as.numeric(round(model_function(
-                          lambda = exp(combined_params$disruption),
-                          theta1 = combined_params$inf_imm1, theta2 = combined_params$inf_imm2,
-                          omega1 = combined_params$waning1, omega2 = combined_params$waning2, 
-                          alpha1 = combined_params$aging1, alpha2 = combined_params$aging2, 
-                          stored_data = save_data, 
-                          delta = 0.0075, 
-                          n_interest = duration)[, 1], digits = 0)) * combined_params$detection,
+                        as.numeric(round(model_pred, digits = 0)) * combined_params$detection,
                         log = T)
+
+    cat("model_pred_inf: ", model_pred[is.infinite(likelihood)], "\n")
+    cat("scotland_rate_count_inf: ", scotland_rate$count[is.infinite(likelihood)], "\n")
+
+
     
     return(sum(likelihood))  
   }
@@ -89,7 +98,7 @@ for(n in c(17, 19:21)){
   settings = list(iterations = 100000, nrChains = 1, message = TRUE, burnin = 50000) # don't thin for now
   
   # fit model and save output
-  results <- mclapply(1:4,
+  results <- mclapply(1:1,
                       function(x) {
                         runMCMC(bayesianSetup = setup, sampler = "DEzs", settings = settings)
                       },
