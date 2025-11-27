@@ -47,8 +47,8 @@ scotland_rate <- read.csv(here("data", "respiratory_age_20241218.csv")) %>%
 # create combinations to run
 combinations <- create_combinations()
 
-for(n in c(17, 19:21)){
-  
+for(n in c(37)){
+  n <- 37
   # set duration of maternal immunity
   duration = combinations[[n]]$duration
   
@@ -60,25 +60,53 @@ for(n in c(17, 19:21)){
   # poisson likelihood function
   likelihood <- function(params){
     
-    params <- as.list(params)
-    names(params) <- combinations[[n]]$name[combinations[[n]]$ind]
-    fixed_params <- as.list(combinations[[n]]$fixed[!combinations[[n]]$ind])
-    names(fixed_params) <- combinations[[n]]$name[!combinations[[n]]$ind]
-    combined_params <- c(params, fixed_params)
-    
-    likelihood <- dpois(round(scotland_rate$count, digits = 0),
-                        as.numeric(round(model_function(
-                          lambda = exp(combined_params$disruption),
-                          theta1 = combined_params$inf_imm1, theta2 = combined_params$inf_imm2,
-                          omega1 = combined_params$waning1, omega2 = combined_params$waning2, 
-                          alpha1 = combined_params$aging1, alpha2 = combined_params$aging2, 
-                          stored_data = save_data, 
-                          delta = 0.0075, 
-                          n_interest = duration)[, 1], digits = 0)) * combined_params$detection,
-                        log = T)
-    
-    return(sum(likelihood))  
+
+      # Convert params to list and name them
+      params <- as.list(params)
+      names(params) <- combinations[[n]]$name[combinations[[n]]$ind]
+      fixed_params <- as.list(combinations[[n]]$fixed[!combinations[[n]]$ind])
+      names(fixed_params) <- combinations[[n]]$name[!combinations[[n]]$ind]
+      combined_params <- c(params, fixed_params)
+      
+
+      # Run model - explicitly extract column 1
+      # Suppress any remaining warnings from the model function
+      model_output <- model_function_rcpp(
+        lambda = as.numeric(combined_params$disruption),
+        theta1 = as.numeric(combined_params$inf_imm1), 
+        theta2 = as.numeric(combined_params$inf_imm2),
+        omega1 = as.numeric(combined_params$waning1), 
+        omega2 = as.numeric(combined_params$waning2), 
+        alpha1 = as.numeric(combined_params$aging1), 
+        alpha2 = as.numeric(combined_params$aging2), 
+        stored_data = save_data, 
+        delta = 0.0075, 
+        n_interest = as.integer(duration))
+      
+      model_pred <- model_output[, 1]
+      
+      # Calculate expected values - be explicit about the calculation
+      model_pred_ceil <- ceiling(model_pred)
+      detection_value <- as.numeric(combined_params$detection)
+      
+      expected <- model_pred_ceil * detection_value
+      # Get observed data
+      observed <- round(scotland_rate$count, digits = 0)
+      
+      # Calculate likelihood - dpois returns -Inf for impossible events, which is fine
+      likelihood_vals <- dpois(observed, expected, log = TRUE)
+      
+      # Sum the log-likelihoods - this might produce -Inf if any component is -Inf
+      ll_sum <- sum(likelihood_vals)
+      
+      # NaN check on sum (but -Inf is valid)
+      if(is.nan(ll_sum)) {
+        return(-Inf)
+      }
+      
+      return(ll_sum)
   }
+
   
   # fitting setup
   setup <- createBayesianSetup(likelihood,
@@ -98,7 +126,7 @@ for(n in c(17, 19:21)){
   out <- createMcmcSamplerList(results)
   
   dir.create(here("output", "data", "parameters", format(Sys.Date(), "%d%m%Y")))
-  saveRDS(out, file = here("output", "data", "parameters", format(Sys.Date(), "%d%m%Y"), paste0("out", n, ".rds")))
+  saveRDS(out, file = here("output", "data", "parameters", format(Sys.Date(), "%d%m%Y"), paste0("out_david_", n, ".rds")))
   
   print(paste("end iteration number", n, "time:", Sys.time()))
   

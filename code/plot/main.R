@@ -3,7 +3,7 @@ library(dplyr)
 library(readxl)
 library(zoo)
 
-n <- 17 # choose combination number
+n <- 37 # choose combination number
 rep = 30 # number of years
 factor = combinations[[n]]$factor # select factor for rate of exposure
 n_interest <- combinations[[n]]$duration # duration of immunity in mothers
@@ -46,12 +46,14 @@ birth_data <- read_excel(here("data", "monthly-births-october-24-tabs.xlsx"), sh
   arrange(yearmon)
 
 # laod helper scripts for intermediate data sets
-lapply(list.files(here("code", "plot"), pattern = "^plot.*\\.R$", full.names = TRUE), source)
+n <- 37
+#lapply(list.files(here("code", "plot"), pattern = "^plot.*\\.R$", full.names = TRUE), source)
 lapply(list.files(here("code", "model"), pattern = "^save.*\\.R$", full.names = TRUE), source)
 lapply(list.files(here("code", "model"), pattern = "^create.*\\.R$", full.names = TRUE), source)
 
+n <- 37
 # extract posteriors
-out <- readRDS(here("output", "data", "parameters", "15032025*", paste0("out", n, ".rds")))
+out <- readRDS(here("output", "data", "parameters", "27112025", paste0("out_david_", n, ".rds")))
 
 posterior <- getSample(out, thin = 100)
 posterior <- posterior[1:2000, ]
