@@ -2,6 +2,7 @@ library(dplyr)
 library(tidyr)
 library(parallel)
 
+
 save_trajectory <- function(out){
   
   posterior <- getSample(out, thin = 100)
@@ -26,7 +27,7 @@ save_trajectory <- function(out){
                    mc.cores = 4)
   
   dir.create(here("output", "data", "trajectories", format(Sys.Date(), "%d%m%Y")))
-  saveRDS(traj, file = here("output", "data", "trajectories", format(Sys.Date(), "%d%m%Y"), paste0("traj", n, ".rds"))) # needs to go in separate function
+  saveRDS(traj, file = here("output", "data", "trajectories", format(Sys.Date(), "%d%m%Y"), paste0("traj_david_", n, ".rds"))) # needs to go in separate function
   
   return(traj)
   
