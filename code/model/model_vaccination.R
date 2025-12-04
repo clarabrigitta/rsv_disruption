@@ -57,10 +57,7 @@ create_data <- function(n_interest, rep = 30, factor){
            birth_month = as.numeric(format(as.Date(date, format = "%Y-%B-%d"), "%m"))) %>%
     arrange(yearmon)
   
-  birth_average <- birth_data %>% 
-    filter(year >= 2020) %>% 
-    group_by(month) %>% 
-    summarise(average = floor(mean(births)))
+  lm(births ~ as.numeric(yearmon), birth_data)
 
   birth_extended <- bind_rows(birth_data, 
                               dates %>% 
@@ -68,9 +65,7 @@ create_data <- function(n_interest, rep = 30, factor){
                                 distinct() %>% filter(yearmon > "Feb 2025") %>% 
                                 mutate(month = month.name[match(month, month.abb)])) %>% 
     mutate(birth_month = as.numeric(format(as.Date(date, format = "%Y-%B-%d"), "%m"))) %>% 
-    left_join(birth_average, by = "month") %>% 
-    mutate(births = coalesce(births, average)) %>% 
-    select(-average)
+    mutate(births = ifelse(yearmon > "Feb 2025", 59875.05 + -27.54 * as.numeric(yearmon), births))
   
   birth_data <- birth_extended
   

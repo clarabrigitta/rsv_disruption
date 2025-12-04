@@ -209,3 +209,46 @@ grid.arrange(lambda_1, lambda_2,
              alpha_1, alpha_2,
              ncol = 2,
              nrow = 4)
+
+# -------------------------------------------------------------------------
+
+for(upper in c(3:6)){
+u <- upper
+  
+n_sim <- 1000
+
+prior <- runif(n_sim, 0, u)
+
+prior_df <- data.frame(prior = prior)
+
+assign(paste0("histogram", u), ggplot(prior_df) +
+  geom_histogram(aes(prior), fill = "#69b3a2", alpha = 0.7) +
+  theme_bw() +
+  labs(x = " ", y = "Frequency", title = paste0(LETTERS[u-2], ".", " upper limit = ", u)) +
+    theme(axis.text=element_text(size=12),
+          axis.title=element_text(size=14)))
+
+x_vals <- seq(0, 48, length.out = 500)
+
+data <- matrix(nrow = 500, ncol = length(prior))
+
+for(r in 1:length(prior)){
+  data[, r] <- 1 - (1 / (1 + exp(-as.numeric(prior[r]) * (x_vals - 3.5))))
+}
+
+assign(paste0("ppd", u), data %>% 
+         as.data.frame() %>% 
+         mutate(months = x_vals) %>% 
+         pivot_longer(cols = 1:1000, names_to = "iter", values_to = "value") %>% 
+         ggplot() +
+         geom_line(aes(x = months, y = value, group = iter), colour = "#69b3a2", size = 0.1, alpha = 0.2) +
+         labs(x = "Age (months)", y = "Waning immunity", title = " ") +
+         theme_bw() +
+         theme(axis.text=element_text(size=12),
+               axis.title=element_text(size=14)) +
+         xlim(0, 48))
+}
+
+waning_ppd <- grid.arrange(histogram3, ppd3, histogram4, ppd4, histogram5, ppd5, histogram6, ppd6, ncol = 2, nrow = 4)
+
+ggsave(filename = here("output", "figures", paste0("waning_ppd", ".png")), plot = waning_ppd, width = 8, height = 8, dpi = 300)

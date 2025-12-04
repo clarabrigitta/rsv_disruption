@@ -45,8 +45,8 @@ plot_age_season <- function(traj_birth_month, birth_data){
     filter(!season == "2024-25")
   
   fig_2122 <- ggplot() +
-    geom_ribbon(data = data %>% mutate(season = factor(season, levels = c("2017-18", "2018-19", "2019-20", "2020-21", "2022-23", "2023-24", "2021-22"))), aes(x = time_birth, ymax = upper_rate, ymin = lower_rate, fill = season), alpha = 0.4, linetype = 0) +
-    geom_line(data = data %>% mutate(season = factor(season, levels = c("2017-18", "2018-19", "2019-20", "2020-21", "2022-23", "2023-24", "2021-22"))), aes(x = time_birth, y = attack_rate, group = season, colour = season, linetype = season), size = 1) +
+    geom_ribbon(data = data %>% filter(!season %in% c("2022-23", "2023-24")) %>% mutate(season = factor(season, levels = c("2017-18", "2018-19", "2019-20", "2020-21", "2022-23", "2023-24", "2021-22"))), aes(x = time_birth, ymax = upper_rate, ymin = lower_rate, fill = season), alpha = 0.4, linetype = 0) +
+    geom_line(data = data %>% filter(!season %in% c("2022-23", "2023-24")) %>% mutate(season = factor(season, levels = c("2017-18", "2018-19", "2019-20", "2020-21", "2022-23", "2023-24", "2021-22"))), aes(x = time_birth, y = attack_rate, group = season, colour = season, linetype = season), size = 1) +
     scale_x_continuous(breaks = seq(0, 48, by = 6)) +
     scale_colour_manual(values = c("2017-18" = "grey", "2018-19" = "grey", "2019-20" = "grey", "2020-21"= "grey", "2021-22" = "#FABA39FF", "2022-23" = "grey", "2023-24" = "grey")) + 
     scale_fill_manual(values = c("2017-18" = "grey", "2018-19" = "grey", "2019-20" = "grey", "2020-21"= "grey", "2021-22" = "#FABA39FF", "2022-23" = "grey", "2023-24" = "grey")) + 
@@ -61,8 +61,8 @@ plot_age_season <- function(traj_birth_month, birth_data){
           legend.text = element_text(size = 12))
   
   fig_2223 <- ggplot() +
-    geom_ribbon(data = data %>% mutate(season = factor(season, levels = c("2017-18", "2018-19", "2019-20", "2020-21", "2022-23", "2023-24", "2021-22"))), aes(x = time_birth, ymax = upper_rate, ymin = lower_rate, fill = season), alpha = 0.4, linetype = 0) +
-    geom_line(data = data %>% mutate(season = factor(season, levels = c("2017-18", "2018-19", "2019-20", "2020-21", "2021-22", "2023-24", "2022-23"))), aes(x = time_birth, y = attack_rate, group = season, colour = season, linetype = season), size = 1) +
+    geom_ribbon(data = data %>% filter(!season %in% c("2021-22", "2023-24")) %>% mutate(season = factor(season, levels = c("2017-18", "2018-19", "2019-20", "2020-21", "2022-23", "2023-24", "2021-22"))), aes(x = time_birth, ymax = upper_rate, ymin = lower_rate, fill = season), alpha = 0.4, linetype = 0) +
+    geom_line(data = data %>% filter(!season %in% c("2021-22", "2023-24")) %>% mutate(season = factor(season, levels = c("2017-18", "2018-19", "2019-20", "2020-21", "2021-22", "2023-24", "2022-23"))), aes(x = time_birth, y = attack_rate, group = season, colour = season, linetype = season), size = 1) +
     scale_x_continuous(breaks = seq(0, 48, by = 6)) +
     scale_colour_manual(values = c("2017-18" = "grey", "2018-19" = "grey", "2019-20" = "grey", "2020-21"= "grey", "2021-22" = "grey", "2022-23" = "#E4460AFF", "2023-24" = "grey")) + 
     scale_fill_manual(values = c("2017-18" = "grey", "2018-19" = "grey", "2019-20" = "grey", "2020-21"= "grey", "2021-22" = "grey", "2022-23" = "#E4460AFF", "2023-24" = "grey")) + 
@@ -77,8 +77,8 @@ plot_age_season <- function(traj_birth_month, birth_data){
           legend.text = element_text(size = 12))
   
   fig_2324 <- ggplot() +
-    geom_ribbon(data = data %>% mutate(season = factor(season, levels = c("2017-18", "2018-19", "2019-20", "2020-21", "2022-23", "2023-24", "2021-22"))), aes(x = time_birth, ymax = upper_rate, ymin = lower_rate, fill = season), alpha = 0.4, linetype = 0) +
-    geom_line(data = data, aes(x = time_birth, y = attack_rate, group = season, colour = season, linetype = season), size = 1) +
+    geom_ribbon(data = data %>% filter(!season %in% c("2021-22", "2022-23")) %>% mutate(season = factor(season, levels = c("2017-18", "2018-19", "2019-20", "2020-21", "2022-23", "2023-24", "2021-22"))), aes(x = time_birth, ymax = upper_rate, ymin = lower_rate, fill = season), alpha = 0.4, linetype = 0) +
+    geom_line(data = data %>% filter(!season %in% c("2021-22", "2022-23")), aes(x = time_birth, y = attack_rate, group = season, colour = season, linetype = season), size = 1) +
     scale_x_continuous(breaks = seq(0, 48, by = 6)) +
     scale_colour_manual(values = c("2017-18" = "grey", "2018-19" = "grey", "2019-20" = "grey", "2020-21"= "grey", "2021-22" = "grey", "2022-23" = "grey", "2023-24" = "#7A0403FF")) + 
     scale_fill_manual(values = c("2017-18" = "grey", "2018-19" = "grey", "2019-20" = "grey", "2020-21"= "grey", "2021-22" = "grey", "2022-23" = "grey", "2023-24" = "#7A0403FF")) + 
