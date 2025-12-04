@@ -281,6 +281,20 @@ create_combinations <- function(){
                             lb = c(0, -10, 0, 0, 0, 0, 0, 0),
                             ub = c(1, 0, 3, 25, 3, 48, 3, 48),
                             duration = 24,
+                            factor = 1),
+                       list(ind = c(F, T, T, T, T, T, T, T),
+                            name = c("detection", "disruption", "inf_imm1", "inf_imm2", "waning1", "waning2", "aging1", "aging2"),
+                            fixed = c(0.07, -4.3, 1.5, 20, 2, 7, 2, 26),
+                            lb = c(0, 0.01, 0, 0, 0, 0, 0, 0),
+                            ub = c(1, 1, 3, 25, 3, 48, 3, 48),
+                            duration = 24,
+                            factor = 1),
+                       list(ind = c(F, T, T, T, T, T, T, T),
+                            name = c("detection", "disruption", "inf_imm1", "inf_imm2", "waning1", "waning2", "aging1", "aging2"),
+                            fixed = c(0.07, -4.3, 1.5, 20, 2, 7, 2, 26),
+                            lb = c(0, -5, 0, 0, 0, 0, 0, 0),
+                            ub = c(1, 0, 3, 25, 3, 48, 3, 48),
+                            duration = 24,
                             factor = 1))
   
   return(combinations)
