@@ -15,7 +15,7 @@ model_function <- function(lambda, theta1, theta2, omega1, omega2, alpha1, alpha
   # 3 - 28 = infection history status
   # 29 = births
   women <- stored_data[[1]]
-  
+
   # adding base case import rate to exposure rate
   women[, 2] <- women[, 2] + delta
   

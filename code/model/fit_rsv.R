@@ -78,7 +78,7 @@ for(n in c(17, 19:21)){
                         log = T)
     
     return(sum(likelihood))  
-
+    
   }
   
   # fitting setup
