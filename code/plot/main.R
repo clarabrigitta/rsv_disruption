@@ -50,12 +50,13 @@ lapply(list.files(here("code", "plot"), pattern = "^plot.*\\.R$", full.names = T
 lapply(list.files(here("code", "model"), pattern = "^save.*\\.R$", full.names = TRUE), source)
 lapply(list.files(here("code", "model"), pattern = "^create.*\\.R$", full.names = TRUE), source)
 
-for(combo in c(51:52)){
+# core analysis plots
+for(combo in c(17)){ # 17 is baseline scenario, other n refers to different exploratory sensitivity analyses
 
 n <- combo
 
 # extract posteriors
-out <- readRDS(here("output", "data", "parameters", "sa", paste0("out", n, ".rds")))
+out <- readRDS(here("output", "data", "parameters", "15032025*", paste0("out", n, ".rds")))
 
 posterior <- getSample(out, thin = 100)
 posterior <- posterior[1:2000, ]
@@ -64,7 +65,7 @@ fixed <- matrix(combinations[[n]]$fixed[!combinations[[n]]$ind],
                 ncol = sum(!combinations[[n]]$ind),
                 byrow = TRUE,
                 dimnames = list(NULL, combinations[[n]]$name[!combinations[[n]]$ind]))
-posterior57 <- cbind(posterior, fixed)
+posterior <- cbind(posterior, fixed)
 
 # set duration of maternal immunity
 duration = combinations[[n]]$duration
@@ -146,3 +147,4 @@ plot_traceplot(out)
 plot_trajectories(traj)
 
 }
+# for further supplementary plots run plot_supplements.R
