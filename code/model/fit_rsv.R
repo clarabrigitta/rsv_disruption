@@ -47,8 +47,9 @@ scotland_rate <- read.csv(here("data", "respiratory_age_20241218.csv")) %>%
 # create combinations to run
 combinations <- create_combinations()
 
-for(n in c(37)){
-  n <- 37
+for(combo in c(42, 43)){
+  
+  n <- combo
   # set duration of maternal immunity
   duration = combinations[[n]]$duration
   
@@ -72,7 +73,7 @@ for(n in c(37)){
       # Run model - explicitly extract column 1
       # Suppress any remaining warnings from the model function
       model_output <- model_function_rcpp(
-        lambda = as.numeric(combined_params$disruption),
+        lambda = exp(as.numeric(combined_params$disruption)),
         theta1 = as.numeric(combined_params$inf_imm1), 
         theta2 = as.numeric(combined_params$inf_imm2),
         omega1 = as.numeric(combined_params$waning1), 
@@ -131,3 +132,4 @@ for(n in c(37)){
   print(paste("end iteration number", n, "time:", Sys.time()))
   
 }
+ 
