@@ -81,26 +81,6 @@ likelihood <- function(params){
 }
 
 # fitting setup
-
-# uncomment for combination 38 using a normal distribution
-# prior <- createPrior(
-#   density = function(params) {
-#     dnorm(params[1], mean = 0.05, sd = 0.01, log = TRUE) +
-#       sum(dunif(params[-1], 
-#                 min = combinations[[n]]$lb[combinations[[n]]$ind][-1],
-#                 max = combinations[[n]]$ub[combinations[[n]]$ind][-1],
-#                 log = TRUE))},
-#   sampler = function() {c(rnorm(1, mean = 0.05, sd = 0.01),
-#                     runif(length(combinations[[n]]$ind) - 2,
-#                           min = combinations[[n]]$lb[combinations[[n]]$ind][-1],
-#                           max = combinations[[n]]$ub[combinations[[n]]$ind][-1]))},
-#   lower = combinations[[n]]$lb[combinations[[n]]$ind],
-#   upper = combinations[[n]]$ub[combinations[[n]]$ind])
-# 
-# setup <- createBayesianSetup(likelihood,
-#                              prior = prior,
-#                              names = combinations[[n]]$name[combinations[[n]]$ind])
-
 setup <- createBayesianSetup(likelihood,
                              lower = combinations[[n]]$lb[combinations[[n]]$ind],
                              upper = combinations[[n]]$ub[combinations[[n]]$ind],
