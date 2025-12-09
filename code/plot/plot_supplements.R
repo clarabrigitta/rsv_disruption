@@ -210,10 +210,40 @@ disruption_scenarios <- data.frame(time = 1:25,
   theme(axis.text=element_text(size=12),
         axis.title=element_text(size=14))
 
+disruption <- as.data.frame(matrix(nrow = 17, ncol = 2000))
+for(r in 1:nrow(as.data.frame(posterior57))){
+  disruption[, r] <- c(rep(0.01, 2), seq(0.01, exp(as.data.frame(posterior57)[r , "disruption"]), length.out = 3), rep(exp(as.data.frame(posterior57)[r , "disruption"]), 1), seq(exp(as.data.frame(posterior57)[r , "disruption"]), 0.01, length.out = 5), rep(0.01, 2), seq(0.01, 1, length.out = 4))
+}
+
+disruption_processed <- disruption %>%
+  t() %>% 
+  hdi() %>% 
+  rbind(mean = rowMeans(disruption)) %>% 
+  t() %>% 
+  as.data.frame() %>% 
+  mutate(month = seq(as.Date("2020-03-01"), as.Date("2021-07-01"), by = "month"),
+         ori = c(rep(exp(-4.3), 13), rep(1, 4))) %>% 
+  ggplot() +
+  geom_line(aes(x = month, y = ori, colour = "12-month reduction", fill = "12-month reduction")) +
+  geom_line(aes(x = month, y = mean, colour = "alternative scenario", fill = "alternative scenario")) +
+  geom_ribbon(aes(x = month, ymax= upper, ymin = lower, colour = "alternative scenario", fill = "alternative scenario"), alpha = 0.5) +
+  scale_x_date(date_breaks = "3 month") +
+  scale_colour_manual(
+    name = "Lockdown Lifting\nScenario",
+    values = c("12-month reduction"   = "#440154FF", "alternative scenario" = "#FDE725FF")) +
+  scale_fill_manual(
+    name = "Lockdown Lifting\nScenario",
+    values = c("12-month reduction"   = "#440154FF","alternative scenario" = "#FDE725FF")) +
+  labs(x = "Month",
+       y = "Value") +
+  theme_bw() +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14))
+
 dir.create(here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y")))
 ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "rate.png"), plot = rate, width = 10, height = 7, dpi = 300)
 ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "births.png"), plot = births, width = 8, height = 6, dpi = 300)
 ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "sensitivity_contacts.png"), plot = sensitivity_contacts, width = 10, height = 6, dpi = 300)
 ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "burnin.png"), plot = burnin, width = 10, height = 6, dpi = 300)
-ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "disruption_scenarios.png"), plot = disruption_scenarios, width = 10, height = 6, dpi = 300)
+ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "disruption_scenarios.png"), plot = disruption_processed, width = 10, height = 6, dpi = 300)
 
