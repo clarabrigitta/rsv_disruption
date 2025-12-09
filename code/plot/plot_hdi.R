@@ -29,7 +29,6 @@ plot_hdi <- function(traj, traj_infection){
     scale_color_manual(name = "", values = c("Infection" = "#1E88E5", "Recorded Disease" = "#D81B60")) +
     scale_fill_manual(name = "", values = c("Infection" = "#1E88E5", "Recorded Disease" = "#D81B60")) +
     scale_shape_manual(name = "", values = c("Data" = 16)) +
-    # scale_y_continuous(transform = "log10") +
     labs(x = "Time (months)", y = "Number of RSV cases") + 
     theme_classic() +
     theme(axis.text=element_text(size=12),
@@ -75,7 +74,3 @@ plot_hdi <- function(traj, traj_infection){
   ggsave(filename = here("output", "figures", "hdi", format(Sys.Date(), "%d%m%Y"), paste0(n, ".png")), plot = fig, width = 9, height = 9, dpi = 300)
   
 }
-
-# test code for annual/seasonal disease counts
-traj17 <- readRDS("~/Desktop/rsv_disruption/output/data/trajectories/17112025/traj17.rds")
-traj <- traj17
