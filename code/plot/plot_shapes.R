@@ -21,7 +21,7 @@ plot_shapes <- function(out){
   maternal_data <- matrix(nrow = nrow(posterior), ncol = 500)
 
   for(r in 1:nrow(posterior)){
-    maternal_data[r ,] <- 1 - (1 / (1 + exp(-posterior[r, "inf_imm1"] * (x_vals - posterior[r, "inf_imm2"]))))
+    maternal_data[r ,] <- 1 - (1 / (1 + exp(-as.numeric(posterior[r, "inf_imm1"]) * (x_vals - as.numeric(posterior[r, "inf_imm2"])))))
   }
 
   maternal_data <- maternal_data %>% hdi() %>% rbind(mean = colMeans(maternal_data)) %>% t() %>% cbind(x_vals)
@@ -40,7 +40,7 @@ plot_shapes <- function(out){
   waning_data <- matrix(nrow = nrow(posterior), ncol = 500)
 
   for(r in 1:nrow(posterior)){
-    waning_data[r ,] <- 1 / (1 + exp(posterior[r, "waning1"] * (x_vals - posterior[r, "waning2"])))
+    waning_data[r ,] <- 1 / (1 + exp(as.numeric(posterior[r, "waning1"]) * (x_vals - as.numeric(posterior[r, "waning2"]))))
   }
 
   waning_data <- waning_data %>% hdi() %>% rbind(mean = colMeans(waning_data)) %>% t() %>% cbind(x_vals)
@@ -58,7 +58,7 @@ plot_shapes <- function(out){
   aging_data <- matrix(nrow = nrow(posterior), ncol = 500)
 
   for(r in 1:nrow(posterior)){
-    aging_data[r ,] <- 1 / (1 + exp(posterior[r, "aging1"] * (x_vals - posterior[r, "aging2"])))
+    aging_data[r ,] <- 1 / (1 + exp(as.numeric(posterior[r, "aging1"]) * (x_vals - as.numeric(posterior[r, "aging2"]))))
   }
 
   aging_data <- aging_data %>% hdi() %>% rbind(mean = colMeans(aging_data)) %>% t() %>% cbind(x_vals)
@@ -72,7 +72,7 @@ plot_shapes <- function(out){
           axis.title=element_text(size=14)) + 
     coord_cartesian(ylim = c(0, NA))
   
-  parameters <- posterior %>% hdi() %>% rbind(mean = colMeans(posterior))
+  parameters <- posterior %>% hdi() %>% rbind(mean = colMeans(as.data.frame(posterior[, 1:8]) %>% mutate(across(everything(), ~ as.numeric(as.character(.))))))
   
   # probability of infection heatmap
   x_mother <- seq(0, 25, length.out = 500)

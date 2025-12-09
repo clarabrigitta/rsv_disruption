@@ -20,7 +20,8 @@ create_trajectory_infection <- function(lambda, theta1, theta2, omega1, omega2, 
   women[, 2] <- women[, 2] + delta
   
   # subject rate to disruption factor lambda
-  women[303:315, 2] <-  women[303:315, 2] * lambda # period corresponding to March 2020-2021
+  # women[303:315, 2] <-  women[303:315, 2] * lambda # period corresponding to March 2020 - March 2021 = 315 (January 2021  = 313)
+  women[303:319, 2] <-  women[303:319, 2] * c(rep(0.01, 2), seq(0.01, lambda, length.out = 3), rep(lambda, 1), seq(lambda, 0.01, length.out = 5), rep(0.01, 2), seq(0.01, 1, length.out = 4))  
   
   # initial state
   women[1, 3] <- 1000000
@@ -65,7 +66,8 @@ create_trajectory_infection <- function(lambda, theta1, theta2, omega1, omega2, 
   stored_data[[3]] <- stored_data[[3]] + delta
   
   # apply lambda to rate vector
-  stored_data[[3]][123:135] <- stored_data[[3]][123:135] * lambda # period corresponding to March 2020-2021
+  # stored_data[[3]][123:135] <- stored_data[[3]][123:135] * lambda # period corresponding to March 2020 - March 2021 = 135 (January 2021 = 133)
+  stored_data[[3]][123:139] <-  stored_data[[3]][123:139] * c(rep(0.01, 2), seq(0.01, lambda, length.out = 3), rep(lambda, 1), seq(lambda, 0.01, length.out = 5), rep(0.01, 2), seq(0.01, 1, length.out = 4))
   
   data <- map(1:nrow(babies),
               function(x){

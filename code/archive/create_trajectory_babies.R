@@ -11,7 +11,7 @@ create_trajectory_babies <- function(lambda, stored_data, delta, n_interest){
   women[, 2] <- women[, 2] + delta
   
   # subject rate to disruption factor lambda
-  women[303:313, 2] <-  women[303:313, 2] * lambda # period corresponding to March 2020-2021
+  women[303:315, 2] <-  women[303:315, 2] * lambda # period corresponding to March 2020-2021
   
   # initial state
   women[1, 3] <- 1000000
@@ -42,3 +42,14 @@ create_trajectory_babies <- function(lambda, stored_data, delta, n_interest){
   return(babies)
   
 }
+
+babies <- create_trajectory_babies(lambda = exp(-4.3), save_data, delta = 0.0075, n_interest) %>% 
+  as.data.frame() %>% 
+  mutate(effective = I1 +I2 +I3, 
+         perc = effective/births) %>% 
+  rename(time_calendar = time) %>% 
+  left_join(dates, join_by(time_calendar)) %>% 
+  filter(season == "2019-20") %>% 
+  select(perc) %>% 
+  pull()
+babies <- create_trajectory_babies(lambda = exp(-4.3), save_data, delta = 0.0075, n_interest) %>% as.data.frame() %>% mutate(effective = I1 +I2 +I3, perc = effective/births) %>% rename(time_calendar = time) %>% left_join(dates)babies <- create_trajectory_babies(lambda = exp(-4.3), save_data, delta = 0.0075, n_interest) %>% as.data.frame() %>% mutate(effective = I1 +I2 +I3, perc = effective/births) %>% rename(time_calendar = time) %>% left_join(dates)

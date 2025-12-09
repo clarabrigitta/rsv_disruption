@@ -50,8 +50,12 @@ lapply(list.files(here("code", "plot"), pattern = "^plot.*\\.R$", full.names = T
 lapply(list.files(here("code", "model"), pattern = "^save.*\\.R$", full.names = TRUE), source)
 lapply(list.files(here("code", "model"), pattern = "^create.*\\.R$", full.names = TRUE), source)
 
+for(combo in c(51:52)){
+
+n <- combo
+
 # extract posteriors
-out <- readRDS(here("output", "data", "parameters", "15032025*", paste0("out", n, ".rds")))
+out <- readRDS(here("output", "data", "parameters", "sa", paste0("out", n, ".rds")))
 
 posterior <- getSample(out, thin = 100)
 posterior <- posterior[1:2000, ]
@@ -60,7 +64,7 @@ fixed <- matrix(combinations[[n]]$fixed[!combinations[[n]]$ind],
                 ncol = sum(!combinations[[n]]$ind),
                 byrow = TRUE,
                 dimnames = list(NULL, combinations[[n]]$name[!combinations[[n]]$ind]))
-posterior <- cbind(posterior, fixed)
+posterior57 <- cbind(posterior, fixed)
 
 # set duration of maternal immunity
 duration = combinations[[n]]$duration
@@ -72,15 +76,15 @@ save_data <- create_data(n_interest = duration, rep = 30, factor = combinations[
 traj <- save_trajectory(out)
 
 # generate trajectory of infection and disease
-traj_infection<- mclapply(1:nrow(posterior),
+traj_infection <- mclapply(1:nrow(posterior),
                              function(r){
-                               output <- create_trajectory_infection(lambda = exp(posterior[r, "disruption"]),
-                                                                     theta1 = posterior[r, "inf_imm1"], theta2 = posterior[r, "inf_imm2"],
-                                                                     omega1 = posterior[r, "waning1"], omega2 = posterior[r, "waning2"],
-                                                                     alpha1 = posterior[r, "aging1"], alpha2 = posterior[r, "aging2"],
-                                                                     stored_data = save_data,
-                                                                     delta = 0.0075,
-                                                                     n_interest = duration)[, 1] * posterior[r, "detection"]
+                               output <- create_trajectory_infection(lambda = exp(unlist(posterior[r, "disruption"])), 
+                                                                     theta1 = as.numeric(posterior[r, "inf_imm1"]), theta2 = as.numeric(posterior[r, "inf_imm2"]), 
+                                                                     omega1 = as.numeric(posterior[r, "waning1"]), omega2 = as.numeric(posterior[r, "waning2"]), 
+                                                                     alpha1 = as.numeric(posterior[r, "aging1"]), alpha2 = as.numeric(posterior[r, "aging2"]), 
+                                                                     stored_data = save_data, 
+                                                                     delta = 0.0075,  
+                                                                     n_interest = duration)[, 1] * as.numeric(posterior[r, "detection"])
                                return(output)
                              },
                              mc.cores = 4) 
@@ -117,20 +121,20 @@ risk <- do.call(rbind, traj) %>%
 plot_shapes(out)
 
 # parameter estimates summary statistics
-colMeans(posterior)
-hdi(posterior)
+# colMeans(posterior)
+# hdi(posterior)
 
 # generate trajectory with details (e.g., birth_month, etc.)
 traj_birth_month <- mclapply(1:nrow(posterior),
                  function(r){
-                   output <- create_trajectory_birth_month(lambda = exp(posterior[r, "disruption"]),
-                                           theta1 = posterior[r, "inf_imm1"], theta2 = posterior[r, "inf_imm2"],
-                                           omega1 = posterior[r, "waning1"], omega2 = posterior[r, "waning2"],
-                                           alpha1 = posterior[r, "aging1"], alpha2 = posterior[r, "aging2"],
+                   output <- create_trajectory_birth_month(lambda = exp(as.numeric(unlist(posterior[r, "disruption"]))), 
+                                                           theta1 = as.numeric(posterior[r, "inf_imm1"]), theta2 = as.numeric(posterior[r, "inf_imm2"]), 
+                                                           omega1 = as.numeric(posterior[r, "waning1"]), omega2 = as.numeric(posterior[r, "waning2"]), 
+                                                           alpha1 = as.numeric(posterior[r, "aging1"]), alpha2 = as.numeric(posterior[r, "aging2"]), 
                                            stored_data = save_data,
                                            delta = 0.0075,
                                            n_interest = duration)
-                   output[, c(3:(3+n_interest), (10+n_interest))] <- output[, c(3:(3+n_interest), (10+n_interest))] * posterior[r, "detection"]
+                   output[, c(3:(3+n_interest), (10+n_interest))] <- output[, c(3:(3+n_interest), (10+n_interest))] * as.numeric(posterior[r, "detection"])
                    return(output)
                  },
                  mc.cores = 4) 
@@ -140,3 +144,5 @@ plot_age_season(traj_birth_month, birth_data)
 # additional plots for exploration
 plot_traceplot(out)
 plot_trajectories(traj)
+
+}
