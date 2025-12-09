@@ -227,3 +227,142 @@ ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%
 ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "sensitivity_duration.png"), plot = sensitivity_duration, width = 10, height = 6, dpi = 300)
 ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "disruption_scenarios.png"), plot = disruption_processed, width = 10, height = 6, dpi = 300)
 
+# plots: sensitivity analysis for detection rate
+sensitivity_detection <- posterior17 %>% 
+  as.data.frame() %>% 
+  pivot_longer(1:6, names_to = "parameters") %>% 
+  mutate(detection = "0.07") %>% 
+  bind_rows(posterior42 %>% 
+              as.data.frame() %>% 
+              pivot_longer(1:6, names_to = "parameters") %>% 
+              mutate(detection = "0.05")) %>% 
+  bind_rows(posterior43 %>% 
+              as.data.frame() %>% 
+              pivot_longer(1:6, names_to = "parameters") %>% 
+              mutate(detection = "0.09")) %>% 
+  mutate(parameters = factor(parameters, levels = c("inf_imm1", "inf_imm2", "waning1", "waning2", "aging1", "aging2"))) %>% 
+  ggplot() +
+  geom_boxplot(aes(x = parameters, y = value, fill = detection), outliers = FALSE, size = 0.3) +
+  scale_x_discrete(labels = c(aging1 = expression(alpha[1]),
+                              aging2 = expression(alpha[2]),
+                              inf_imm1 = expression(theta[1]),
+                              inf_imm2 = expression(theta[2]),
+                              waning1 = expression(omega[1]),
+                              waning2 = expression(omega[2]))) +
+  scale_fill_viridis_d() +
+  labs(x = "Parameters Estimated",
+       y = "Value",
+       fill = "Detection Rate") +
+  theme_bw() +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14))
+
+data <- do.call(rbind, traj17) %>% 
+  as.data.frame() %>% 
+  hdi() %>% 
+  t() %>% 
+  bind_cols(scotland_rate[, c(1, 2, 3)]) %>% 
+  cbind(mean = colMeans(do.call(rbind, traj17))) %>% 
+  mutate(detection = 0.07) %>% 
+  rbind(do.call(rbind, traj42) %>% 
+          as.data.frame() %>% 
+          hdi() %>% 
+          t() %>% 
+          bind_cols(scotland_rate[, c(1, 2, 3)]) %>% 
+          cbind(mean = colMeans(do.call(rbind, traj42))) %>% 
+          mutate(detection = 0.05)) %>% 
+  rbind(do.call(rbind, traj43) %>% 
+          as.data.frame() %>% 
+          hdi() %>% 
+          t() %>% 
+          bind_cols(scotland_rate[, c(1, 2, 3)]) %>% 
+          cbind(mean = colMeans(do.call(rbind, traj43))) %>% 
+          mutate(detection = 0.09)) %>% 
+  mutate(detection = factor(detection, levels = c(0.05, 0.07, 0.09)))
+
+fig <- ggplot(data) +
+  geom_line(aes(x = yearmon, y = mean, color = detection), linetype = 1) +
+  geom_ribbon(aes(x = yearmon, ymax = upper, ymin = lower, fill = detection), alpha = 0.3, linetype = 0) +
+  geom_point(aes(x = yearmon, y = count, shape = "Data"), size = 2, colour = "black") +
+  scale_colour_viridis_d(name = "Detection Rate") +  
+  scale_fill_viridis_d(name = "Detection Rate") +  
+  scale_shape_manual(name = "", values = c("Data" = 16)) +
+  labs(x = "Time (months)", y = "Number of RSV cases") + 
+  theme_classic() +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14),
+        strip.text = element_text(size = 14, face = "bold"),
+        legend.text = element_text(size = 12),
+        legend.position = "bottom") + 
+  facet_wrap(~age)
+
+ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "traj_detection.png"), plot = fig, width = 10, height = 7, dpi = 300)
+
+maternal <- as.data.frame(maternal17) %>% 
+  mutate(detection = 0.07) %>% 
+  rbind(as.data.frame(maternal42) %>% 
+          mutate(detection = 0.05)) %>% 
+  rbind(as.data.frame(maternal43) %>% 
+          mutate(detection = 0.09)) %>% 
+  as.data.frame() %>% 
+  mutate(detection = factor(detection, levels = c(0.05, 0.07, 0.09)))
+
+m <- ggplot(maternal) +
+  geom_line(aes(x = x_vals, y = mean, colour = detection), size = 1.5) +
+  geom_ribbon(aes(x = x_vals, ymax = upper, ymin = lower, colour = detection, fill = detection), alpha = 0.4, linetype = 0) +
+  labs(x = "Months since maternal infection", y = "Proportion of immunity at birth") +
+  scale_colour_viridis_d(name = "Detection Rate") +  
+  scale_fill_viridis_d(name = "Detection Rate") + 
+  theme_bw() +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14),
+        legend.text = element_text(size = 12),
+        legend.position = "none") +
+  xlim(0, 25)
+
+waning <- as.data.frame(waning17) %>% 
+  mutate(detection = 0.07) %>% 
+  rbind(as.data.frame(waning42) %>% 
+          mutate(detection = 0.05)) %>% 
+  rbind(as.data.frame(waning43) %>% 
+          mutate(detection = 0.09)) %>% 
+  as.data.frame() %>% 
+  mutate(detection = factor(detection, levels = c(0.05, 0.07, 0.09)))
+
+w <- ggplot(waning) +
+  geom_line(aes(x = x_vals, y = mean, colour = detection), size = 1.5) +
+  geom_ribbon(aes(x = x_vals, ymax = upper, ymin = lower, colour = detection, fill = detection), alpha = 0.4, linetype = 0) +
+  labs(x = "Months since waning infection", y = "Proportion of immunity at birth") +
+  scale_colour_viridis_d(name = "Detection Rate") +  
+  scale_fill_viridis_d(name = "Detection Rate") + 
+  theme_bw() +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14),
+        legend.text = element_text(size = 12),
+        legend.position = "bottom") +
+  xlim(0, 48)
+
+aging <- as.data.frame(aging17) %>% 
+  mutate(detection = 0.07) %>% 
+  rbind(as.data.frame(aging42) %>% 
+          mutate(detection = 0.05)) %>% 
+  rbind(as.data.frame(aging43) %>% 
+          mutate(detection = 0.09)) %>% 
+  as.data.frame() %>% 
+  mutate(detection = factor(detection, levels = c(0.05, 0.07, 0.09)))
+
+a <- ggplot(aging) +
+  geom_line(aes(x = x_vals, y = mean, colour = detection), size = 1.5) +
+  geom_ribbon(aes(x = x_vals, ymax = upper, ymin = lower, colour = detection, fill = detection), alpha = 0.4, linetype = 0) +
+  labs(x = "Months since aging infection", y = "Proportion of immunity at birth") +
+  scale_colour_viridis_d(name = "Detection Rate") +  
+  scale_fill_viridis_d(name = "Detection Rate") + 
+  theme_bw() +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14),
+        legend.text = element_text(size = 12),
+        legend.position = "none") +
+  xlim(0, 48)
+
+fig <- (m + w + a) + plot_annotation(tag_levels = "A") + theme(plot.tag = element_text(size = 14))
+ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "shapes_detection.png"), plot = fig, width = 10, height = 6, dpi = 300)
