@@ -56,10 +56,6 @@ n <- combo
 
 # extract posteriors
 out <- readRDS(here("output", "data", "parameters", "sa", paste0("out", n, ".rds")))
-<<<<<<< Updated upstream
-=======
-out <- readRDS(here("output", "data", "parameters", "03122025", "out57_david.rds"))
->>>>>>> Stashed changes
 
 posterior <- getSample(out, thin = 100)
 posterior <- posterior[1:2000, ]
