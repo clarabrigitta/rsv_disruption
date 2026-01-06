@@ -264,13 +264,20 @@ data <- do.call(rbind, traj17) %>%
   bind_cols(scotland_rate[, c(1, 2, 3)]) %>% 
   cbind(mean = colMeans(do.call(rbind, traj17))) %>% 
   mutate(detection = 0.07) %>% 
-  rbind(do.call(rbind, traj42) %>% 
+  rbind(do.call(rbind, traj44) %>% 
           as.data.frame() %>% 
           hdi() %>% 
           t() %>% 
           bind_cols(scotland_rate[, c(1, 2, 3)]) %>% 
-          cbind(mean = colMeans(do.call(rbind, traj42))) %>% 
-          mutate(detection = 0.05)) %>% 
+          cbind(mean = colMeans(do.call(rbind, traj44))) %>% 
+          mutate(detection = 0.06)) %>% 
+  rbind(do.call(rbind, traj45) %>% 
+          as.data.frame() %>% 
+          hdi() %>% 
+          t() %>% 
+          bind_cols(scotland_rate[, c(1, 2, 3)]) %>% 
+          cbind(mean = colMeans(do.call(rbind, traj45))) %>% 
+          mutate(detection = 0.08)) %>% 
   rbind(do.call(rbind, traj43) %>% 
           as.data.frame() %>% 
           hdi() %>% 
@@ -278,7 +285,7 @@ data <- do.call(rbind, traj17) %>%
           bind_cols(scotland_rate[, c(1, 2, 3)]) %>% 
           cbind(mean = colMeans(do.call(rbind, traj43))) %>% 
           mutate(detection = 0.09)) %>% 
-  mutate(detection = factor(detection, levels = c(0.05, 0.07, 0.09)))
+  mutate(detection = factor(detection, levels = c(0.06, 0.07, 0.08, 0.09)))
 
 fig <- ggplot(data) +
   geom_line(aes(x = yearmon, y = mean, color = detection), linetype = 1) +
@@ -300,12 +307,14 @@ ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%
 
 maternal <- as.data.frame(maternal17) %>% 
   mutate(detection = 0.07) %>% 
-  rbind(as.data.frame(maternal42) %>% 
-          mutate(detection = 0.05)) %>% 
+  rbind(as.data.frame(maternal44) %>% 
+          mutate(detection = 0.06)) %>% 
+  rbind(as.data.frame(maternal45) %>% 
+          mutate(detection = 0.08)) %>% 
   rbind(as.data.frame(maternal43) %>% 
           mutate(detection = 0.09)) %>% 
   as.data.frame() %>% 
-  mutate(detection = factor(detection, levels = c(0.05, 0.07, 0.09)))
+  mutate(detection = factor(detection, levels = c(0.06, 0.07, 0.08, 0.09)))
 
 m <- ggplot(maternal) +
   geom_line(aes(x = x_vals, y = mean, colour = detection), size = 1.5) +
@@ -322,17 +331,19 @@ m <- ggplot(maternal) +
 
 waning <- as.data.frame(waning17) %>% 
   mutate(detection = 0.07) %>% 
-  rbind(as.data.frame(waning42) %>% 
-          mutate(detection = 0.05)) %>% 
-  rbind(as.data.frame(waning43) %>% 
-          mutate(detection = 0.09)) %>% 
+  rbind(as.data.frame(waning44) %>% 
+          mutate(detection = 0.06)) %>% 
+  rbind(as.data.frame(waning45) %>% 
+          mutate(detection = 0.08)) %>% 
+rbind(as.data.frame(waning43) %>% 
+        mutate(detection = 0.09)) %>% 
   as.data.frame() %>% 
-  mutate(detection = factor(detection, levels = c(0.05, 0.07, 0.09)))
+  mutate(detection = factor(detection, levels = c(0.06, 0.07, 0.08, 0.09)))
 
 w <- ggplot(waning) +
   geom_line(aes(x = x_vals, y = mean, colour = detection), size = 1.5) +
   geom_ribbon(aes(x = x_vals, ymax = upper, ymin = lower, colour = detection, fill = detection), alpha = 0.4, linetype = 0) +
-  labs(x = "Months since waning infection", y = "Proportion of immunity at birth") +
+  labs(x = "Age (months)", y = "Waning immunity") +
   scale_colour_viridis_d(name = "Detection Rate") +  
   scale_fill_viridis_d(name = "Detection Rate") + 
   theme_bw() +
@@ -344,17 +355,19 @@ w <- ggplot(waning) +
 
 aging <- as.data.frame(aging17) %>% 
   mutate(detection = 0.07) %>% 
-  rbind(as.data.frame(aging42) %>% 
-          mutate(detection = 0.05)) %>% 
-  rbind(as.data.frame(aging43) %>% 
-          mutate(detection = 0.09)) %>% 
+  rbind(as.data.frame(aging44) %>% 
+          mutate(detection = 0.06)) %>% 
+  rbind(as.data.frame(aging45) %>% 
+          mutate(detection = 0.08)) %>% 
+rbind(as.data.frame(aging43) %>% 
+        mutate(detection = 0.09)) %>% 
   as.data.frame() %>% 
-  mutate(detection = factor(detection, levels = c(0.05, 0.07, 0.09)))
+  mutate(detection = factor(detection, levels = c(0.06, 0.07, 0.08, 0.09)))
 
 a <- ggplot(aging) +
   geom_line(aes(x = x_vals, y = mean, colour = detection), size = 1.5) +
   geom_ribbon(aes(x = x_vals, ymax = upper, ymin = lower, colour = detection, fill = detection), alpha = 0.4, linetype = 0) +
-  labs(x = "Months since aging infection", y = "Proportion of immunity at birth") +
+  labs(x = "Age (months)", y = "Probability of disease") +
   scale_colour_viridis_d(name = "Detection Rate") +  
   scale_fill_viridis_d(name = "Detection Rate") + 
   theme_bw() +
@@ -366,3 +379,36 @@ a <- ggplot(aging) +
 
 fig <- (m + w + a) + plot_annotation(tag_levels = "A") + theme(plot.tag = element_text(size = 14))
 ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "shapes_detection.png"), plot = fig, width = 10, height = 6, dpi = 300)
+
+data <- as.data.frame(posterior17) %>% 
+  mutate(detection = 0.07) %>% 
+  rbind(as.data.frame(posterior44) %>% 
+          mutate(detection = 0.06)) %>% 
+  rbind(as.data.frame(posterior45) %>% 
+          mutate(detection = 0.08)) %>% 
+  rbind(as.data.frame(posterior43) %>% 
+          mutate(detection = 0.09)) %>% 
+  as.data.frame() %>% 
+  mutate(detection = factor(detection, levels = c(0.06, 0.07, 0.08, 0.09))) %>% 
+  pivot_longer(cols = 1:7, names_to = "variable", values_to = "value") %>% 
+  mutate(variable = factor(variable, levels = c("inf_imm1", "inf_imm2", "waning1", "waning2", "aging1", "aging2", "Llikelihood")))
+
+fig <- ggplot(data) +
+  geom_density(aes(x = value, colour = detection, fill = detection), alpha = 0.2) +
+  scale_colour_viridis_d(name = "Detection Rate") +  
+  scale_fill_viridis_d(name = "Detection Rate") + 
+  labs(x = "", y = "", colour = "Detection Rate") +
+  theme_bw() +
+  theme(axis.text=element_text(size=12),
+        axis.title=element_text(size=14),
+        strip.text=element_text(size=14),
+        legend.text = element_text(size = 12),
+        legend.position = "bottom") +
+  facet_wrap(~variable, scales = "free", nrow = 4, ncol = 2, labeller = as_labeller(c(aging1 = "alpha[1]",
+                                                                                      aging2 = "alpha[2]",
+                                                                                      inf_imm1 = "theta[1]",
+                                                                                      inf_imm2 = "theta[2]",
+                                                                                      waning1 = "omega[1]",
+                                                                                      waning2 = "omega[2]",  
+                                                                                      Llikelihood = "\"Log-likelihood\""), label_parsed))
+ggsave(filename = here("output", "figures", "supplements", format(Sys.Date(), "%d%m%Y"), "density_detection.png"), plot = fig, width = 8, height = 8, dpi = 300)
